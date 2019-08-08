@@ -6,8 +6,8 @@ public class UserLinks {
 
     @SerializedName("self")
     private String self;
-    @SerializedName("self")
-    private String selfSec;
+    @SerializedName("html")
+    private String html;
     @SerializedName("photos")
     private String photos;
     @SerializedName("likes")

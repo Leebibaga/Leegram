@@ -7,8 +7,6 @@ public class Links {
     private String self;
     @SerializedName("html")
     private String html;
-    @SerializedName("photos")
-    private String photos;
-    @SerializedName("related")
-    private String related;
+    @SerializedName("download")
+    private String download;
 }

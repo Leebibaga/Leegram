@@ -4,7 +4,7 @@ import retrofit2.Retrofit;
 import retrofit2.converter.gson.GsonConverterFactory;
 
 public class ApiClient {
-    private String baseURL;
+    private String baseURL = "https://api.unsplash.com";
     private Retrofit retrofit = null;
 
     public Retrofit getClient(){

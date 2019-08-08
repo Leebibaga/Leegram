@@ -10,4 +10,16 @@ public class ProfileImage {
     private String medium;
     @SerializedName("large")
     private String large;
+
+    public String getLarge() {
+        return large;
+    }
+
+    public String getMedium() {
+        return medium;
+    }
+
+    public String getSmall() {
+        return small;
+    }
 }
