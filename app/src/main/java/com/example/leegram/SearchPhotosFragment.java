@@ -1,10 +1,14 @@
 package com.example.leegram;
 
 import android.graphics.Bitmap;
+import android.graphics.Color;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.support.annotation.NonNull;
+import android.support.annotation.RequiresApi;
 import android.support.v4.app.Fragment;
+import android.support.v4.content.ContextCompat;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.SearchView;
@@ -19,6 +23,7 @@ import android.widget.ImageView;
 
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Objects;
 
 public class SearchPhotosFragment extends Fragment implements SearchView.OnQueryTextListener, PhotosDownloader.FinishDownloadingPhotos {
 
@@ -72,17 +77,19 @@ public class SearchPhotosFragment extends Fragment implements SearchView.OnQuery
     @Override
     public void setImages(List<Bitmap> downloadedPhotos) {
         searchPhotosListAdapter.setPhotos(downloadedPhotos);
-        StaggeredGridLayoutManager staggeredGridLayoutManager = new StaggeredGridLayoutManager(2, LinearLayoutManager.VERTICAL);
+        StaggeredGridLayoutManager staggeredGridLayoutManager =
+                new StaggeredGridLayoutManager(2, LinearLayoutManager.VERTICAL);
         listOfPhotos.setLayoutManager(staggeredGridLayoutManager);
         listOfPhotos.setAdapter(searchPhotosListAdapter);
     }
 
     class SearchPhotosListAdapter extends RecyclerView.Adapter<SearchPhotosListAdapter.PictureHolder> {
-        private List<Bitmap> photos;
+        private List<Bitmap> photos, selected;
         private LayoutInflater inflater;
 
         SearchPhotosListAdapter() {
           photos = new LinkedList<>();
+          selected = new LinkedList<>();
           inflater = LayoutInflater.from(getContext());
         }
 
@@ -92,9 +99,40 @@ public class SearchPhotosFragment extends Fragment implements SearchView.OnQuery
             return new PictureHolder(inflater.inflate(R.layout.photo_fragment, viewGroup, false));
         }
 
+        @RequiresApi(api = Build.VERSION_CODES.KITKAT)
         @Override
-        public void onBindViewHolder(@NonNull PictureHolder pictureHolder, int position) {
-            pictureHolder.contactPic.setImageBitmap(photos.get(position));
+        public void onBindViewHolder(@NonNull final PictureHolder pictureHolder, int position) {
+            final Bitmap itemTouched = photos.get(position);
+            pictureHolder.photo.setImageBitmap(itemTouched);
+            pictureHolder.photo.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View view) {
+                    if (selected.contains(itemTouched)) {
+                        selected.remove(itemTouched);
+                        unhighlightView(pictureHolder);
+                    } else {
+                        selected.add(itemTouched);
+                        highlightView(pictureHolder);
+                    }
+                }
+            });
+
+            if (selected.contains(itemTouched))
+                highlightView(pictureHolder);
+            else
+                unhighlightView(pictureHolder);
+        }
+
+        @RequiresApi(api = Build.VERSION_CODES.KITKAT)
+        private void highlightView(PictureHolder holder) {
+            holder.photo.setBackgroundColor(ContextCompat.getColor(Objects.requireNonNull(getContext()), R.color.colorAccent));
+            holder.photo.setPadding(10,10,10,10);
+        }
+
+        @RequiresApi(api = Build.VERSION_CODES.KITKAT)
+        private void unhighlightView(PictureHolder holder) {
+            holder.photo.setBackgroundColor(ContextCompat.getColor(Objects.requireNonNull(getContext()), android.R.color.transparent));
+            holder.photo.setPadding(-10,-10,-10,-10);
         }
 
 
@@ -108,11 +146,11 @@ public class SearchPhotosFragment extends Fragment implements SearchView.OnQuery
         }
 
         private class PictureHolder extends RecyclerView.ViewHolder {
-            ImageView contactPic;
+            ImageView photo;
 
             public PictureHolder(@NonNull View itemView) {
                 super(itemView);
-                contactPic = itemView.findViewById(R.id.photo_item);
+                photo = itemView.findViewById(R.id.photo_item);
             }
         }
     }
