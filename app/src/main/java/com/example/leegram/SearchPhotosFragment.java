@@ -63,7 +63,7 @@ public class SearchPhotosFragment extends Fragment implements SearchView.OnQuery
                 }
             };
         }
-        
+
         handleSpiiner.removeCallbacks(delayCounter);
         handleSpiiner.postDelayed(delayCounter, 500);
         return true;
