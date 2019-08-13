@@ -1,16 +1,11 @@
 package com.example.leegram;
 
-import android.app.Activity;
 import android.app.ProgressDialog;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.os.AsyncTask;
-import android.os.Handler;
 import android.support.annotation.NonNull;
-import android.support.v4.app.Fragment;
-import android.util.Log;
-
 
 import com.example.leegram.unsplashed.Photo;
 import com.example.leegram.unsplashed.SplashedApi;
@@ -31,20 +26,28 @@ public class PhotosDownloader extends AsyncTask<String, Bitmap, List<Bitmap>> {
 
     public interface FinishDownloadingPhotos {
         void setImages(List<Bitmap> downloadedPhotos);
+        void setURLs(List<String> urls);
     }
 
     private String TOKEN = "210590bd55fa23badf70b162392aa62e3bc62b7029e01eb0f9db858abc0c7cc6";
     private LinkedList<Bitmap> downloadedPhotos = new LinkedList<>();
+    private LinkedList<String> photosUrls = new LinkedList<>();
     private FinishDownloadingPhotos finishDownloadingPhotos;
     private ProgressDialog simpleWaitDialog;
     private int pageNumber = 1;
 
 
-    PhotosDownloader(Context context, FinishDownloadingPhotos callback, String query) {
+    public PhotosDownloader(Context context, FinishDownloadingPhotos callback, String query) {
         simpleWaitDialog = new ProgressDialog(context);
         this.finishDownloadingPhotos = callback;
         simpleWaitDialog.show();
         getListOfPhotoURLs(query);
+    }
+
+    public PhotosDownloader(Context context, FinishDownloadingPhotos callback) {
+        simpleWaitDialog = new ProgressDialog(context);
+        finishDownloadingPhotos = callback;
+        simpleWaitDialog.show();
     }
 
     @Override
@@ -67,9 +70,11 @@ public class PhotosDownloader extends AsyncTask<String, Bitmap, List<Bitmap>> {
     @Override
     protected void onPostExecute(List<Bitmap> bitmap) {
         finishDownloadingPhotos.setImages(bitmap);
+        finishDownloadingPhotos.setURLs(photosUrls);
         simpleWaitDialog.dismiss();
         finishDownloadingPhotos = null;
         simpleWaitDialog = null;
+        photosUrls = null;
     }
 
     private void getListOfPhotoURLs(String query) {
@@ -80,7 +85,6 @@ public class PhotosDownloader extends AsyncTask<String, Bitmap, List<Bitmap>> {
             public void onResponse(@NonNull Call<UnsplashedPhotos> call, @NonNull Response<UnsplashedPhotos> response) {
                 List<Photo> photos = response.body().getResults();
                 if (photos != null && !photos.isEmpty()) {
-                    LinkedList<String> photosUrls = new LinkedList<>();
                     for (Photo photo : photos) {
                         photosUrls.add(photo.getURLs().getRegular());
                     }
