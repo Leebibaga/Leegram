@@ -13,7 +13,7 @@ import io.realm.Realm;
 
 
 public class MainActivity extends AppCompatActivity implements NoDataFragment.OnAddPhotoButtonClickListener,
-        SearchPhotosFragment.OnClickAddButtonListener {
+        SearchPhotosFragment.OnClickAddButtonListener, FavoritePhotosFragment.OnButtonsListener {
     private NoDataFragment noDataFragment;
 
     @Override
@@ -43,6 +43,23 @@ public class MainActivity extends AppCompatActivity implements NoDataFragment.On
         FavoritePhotosFragment favoritePhotosFragment = new FavoritePhotosFragment();
         goToSearchPhotoScreen.beginTransaction()
                 .replace(R.id.main_activity_container, favoritePhotosFragment)
+                .commit();
+    }
+
+    @Override
+    public void onNoPictureListener() {
+        FragmentManager goToSearchPhotoScreen = getSupportFragmentManager();
+        goToSearchPhotoScreen.beginTransaction()
+                .replace(R.id.main_activity_container, noDataFragment)
+                .commit();
+    }
+
+    @Override
+    public void onAddButtonListener() {
+        FragmentManager goToSearchPhotoScreen = getSupportFragmentManager();
+        SearchPhotosFragment searchPhotosFragment = new SearchPhotosFragment();
+        goToSearchPhotoScreen.beginTransaction()
+                .replace(R.id.main_activity_container, searchPhotosFragment)
                 .commit();
     }
 }

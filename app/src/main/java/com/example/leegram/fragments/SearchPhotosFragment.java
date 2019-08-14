@@ -28,6 +28,7 @@ import android.widget.TextView;
 import com.example.leegram.PhotosDownloader;
 import com.example.leegram.R;
 import com.example.leegram.model.PhotoItem;
+import com.facebook.shimmer.ShimmerFrameLayout;
 
 import java.time.format.DateTimeFormatter;
 import java.util.LinkedList;
@@ -49,6 +50,8 @@ public class SearchPhotosFragment extends Fragment implements PhotosDownloader.F
     private Runnable delayCounter;
     private EditText searchPhotoBar;
     private OnClickAddButtonListener mClickListener;
+    private View skeletonLayout;
+
 
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container,
@@ -58,6 +61,7 @@ public class SearchPhotosFragment extends Fragment implements PhotosDownloader.F
         searchPhotoBar = rootView.findViewById(R.id.search_photos_bar);
         listOfPhotos = rootView.findViewById(R.id.photos_list);
         addToFavorites = rootView.findViewById(R.id.add_to_favorites);
+        skeletonLayout = rootView.findViewById(R.id.parentShimmerLayout);
         addToFavorites.setVisibility(View.GONE);
         searchPhotosListAdapter = new SearchPhotosListAdapter();
 
@@ -83,7 +87,8 @@ public class SearchPhotosFragment extends Fragment implements PhotosDownloader.F
                         @Override
                         public void run() {
                             if(!searchPhotoBar.getText().toString().isEmpty()) {
-                                new PhotosDownloader(getContext(), SearchPhotosFragment.this, searchPhotoBar.getText().toString());
+                                skeletonLayout.setVisibility(View.VISIBLE);
+                                new PhotosDownloader(SearchPhotosFragment.this, searchPhotoBar.getText().toString());
                             }
                         }
                     };
@@ -110,12 +115,6 @@ public class SearchPhotosFragment extends Fragment implements PhotosDownloader.F
     @RequiresApi(api = Build.VERSION_CODES.O)
     private void setRealmObject(List<String> selectedPhotos) {
         try (Realm realm = Realm.getDefaultInstance()) {
-            realm.executeTransaction(new Realm.Transaction() {
-                @Override
-                public void execute(@NonNull Realm realm) {
-                    realm.deleteAll();
-                }
-            });
             for (String photoURL : selectedPhotos) {
                 final PhotoItem photoItem = new PhotoItem();
                 photoItem.setPicture(photoURL);
@@ -133,6 +132,7 @@ public class SearchPhotosFragment extends Fragment implements PhotosDownloader.F
 
     @Override
     public void setImages(List<Bitmap> downloadedPhotos) {
+        skeletonLayout.setVisibility(View.GONE);
         searchPhotosListAdapter.setPhotos(downloadedPhotos);
         StaggeredGridLayoutManager staggeredGridLayoutManager =
                 new StaggeredGridLayoutManager(2, LinearLayoutManager.VERTICAL);

@@ -1,5 +1,6 @@
 package com.example.leegram;
 
+import android.annotation.SuppressLint;
 import android.app.ProgressDialog;
 import android.content.Context;
 import android.graphics.Bitmap;
@@ -10,6 +11,7 @@ import android.support.annotation.NonNull;
 import com.example.leegram.unsplashed.Photo;
 import com.example.leegram.unsplashed.SplashedApi;
 import com.example.leegram.unsplashed.UnsplashedPhotos;
+import com.facebook.shimmer.ShimmerFrameLayout;
 
 import java.io.IOException;
 import java.net.HttpURLConnection;
@@ -33,21 +35,17 @@ public class PhotosDownloader extends AsyncTask<String, Bitmap, List<Bitmap>> {
     private LinkedList<Bitmap> downloadedPhotos = new LinkedList<>();
     private LinkedList<String> photosUrls = new LinkedList<>();
     private FinishDownloadingPhotos finishDownloadingPhotos;
-    private ProgressDialog simpleWaitDialog;
     private int pageNumber = 1;
 
 
-    public PhotosDownloader(Context context, FinishDownloadingPhotos callback, String query) {
-        simpleWaitDialog = new ProgressDialog(context);
+    public PhotosDownloader(FinishDownloadingPhotos callback, String query) {
         this.finishDownloadingPhotos = callback;
-        simpleWaitDialog.show();
         getListOfPhotoURLs(query);
     }
 
-    public PhotosDownloader(Context context, FinishDownloadingPhotos callback) {
-        simpleWaitDialog = new ProgressDialog(context);
+    public PhotosDownloader(FinishDownloadingPhotos callback) {
         finishDownloadingPhotos = callback;
-        simpleWaitDialog.show();
+
     }
 
     @Override
@@ -64,16 +62,13 @@ public class PhotosDownloader extends AsyncTask<String, Bitmap, List<Bitmap>> {
 
     @Override
     protected void onProgressUpdate(Bitmap... values) {
-        simpleWaitDialog.setProgressStyle(ProgressDialog.STYLE_SPINNER);
     }
 
     @Override
     protected void onPostExecute(List<Bitmap> bitmap) {
         finishDownloadingPhotos.setImages(bitmap);
         finishDownloadingPhotos.setURLs(photosUrls);
-        simpleWaitDialog.dismiss();
         finishDownloadingPhotos = null;
-        simpleWaitDialog = null;
         photosUrls = null;
     }
 

@@ -1,4 +1,5 @@
 package com.example.leegram.fragments;
+
 import android.graphics.Bitmap;
 import android.os.Build;
 import android.os.Bundle;
@@ -18,6 +19,7 @@ import android.widget.ImageView;
 import com.example.leegram.PhotosDownloader;
 import com.example.leegram.R;
 import com.example.leegram.model.PhotoItem;
+import com.facebook.shimmer.ShimmerFrameLayout;
 
 import java.util.LinkedList;
 import java.util.List;
@@ -27,47 +29,64 @@ import io.realm.Realm;
 import io.realm.RealmResults;
 
 public class FavoritePhotosFragment extends Fragment implements PhotosDownloader.FinishDownloadingPhotos {
+
+    public interface OnButtonsListener {
+        void onNoPictureListener();
+        void onAddButtonListener();
+    }
+
     private RecyclerView favoritePhotos;
-    private List<PhotoItem> photos = new LinkedList<>();
-    private String[] photosURLs;
+    private List<PhotoItem> photoItems = new LinkedList<>();
+    private List<String> photosURLs = new LinkedList<>();
     private FavoritePhotosAdapter favoritePhotosAdapter;
     private Button removePhotos;
-    private List<Bitmap> downloadedPhotos;
+    private OnButtonsListener onButtonsListener;
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
-        final View rootView =  inflater.inflate(R.layout.fragment_favorite_photos, container, false);
+        final View rootView = inflater.inflate(R.layout.fragment_favorite_photos, container, false);
         favoritePhotosAdapter = new FavoritePhotosAdapter();
         favoritePhotos = rootView.findViewById(R.id.favorite_photos);
         removePhotos = rootView.findViewById(R.id.remove_photos);
+        Button addPhotos = rootView.findViewById(R.id.add_more_photos);
+        ShimmerFrameLayout skeletonLayout = rootView.findViewById(R.id.parentShimmerLayout);
         removePhotos.setVisibility(View.GONE);
+        onButtonsListener = (OnButtonsListener) rootView.getContext();
         removePhotos.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 removePhotosFromList();
-                favoritePhotosAdapter.setPhotos(downloadedPhotos);
                 removePhotos.setVisibility(View.GONE);
+                favoritePhotosAdapter.setSelected();
+                if(photoItems.isEmpty()) {
+                    onButtonsListener.onNoPictureListener();
+                }
+            }
+        });
+        addPhotos.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                onButtonsListener.onAddButtonListener();
             }
         });
         getResultFromRealm();
         setPhotosURLs();
-        new PhotosDownloader(getContext(), this).execute(photosURLs);
+        new PhotosDownloader( this).execute(photosURLs.toArray(new String[photosURLs.size()]));
         return rootView;
     }
 
     private void removePhotosFromList() {
         List<String> selected = favoritePhotosAdapter.getSelectedPhotos();
-        for (int index = 0; index < photos.size(); index++) {
-            if (selected.contains(photos.get(index).getPicture())){
-                removeFromRealm(photos.get(index).getPicture());
-                favoritePhotosAdapter.notifyItemRemoved(index);
-                downloadedPhotos.remove(index);
-            }
+        for (String item : selected) {
+            removeFromRealm(item);
+            favoritePhotosAdapter.removeItem(photosURLs.indexOf(item));
+            photoItems.remove(photosURLs.indexOf(item));
+            photosURLs.remove(item);
         }
     }
 
-    private void removeFromRealm(final String url){
+    private void removeFromRealm(final String url) {
         Realm realm = null;
         try {
             realm = Realm.getDefaultInstance();
@@ -96,7 +115,7 @@ public class FavoritePhotosFragment extends Fragment implements PhotosDownloader
             RealmResults<PhotoItem> results = realm
                     .where(PhotoItem.class)
                     .findAll();
-            photos.addAll(realm.copyFromRealm(results));
+            photoItems.addAll(realm.copyFromRealm(results));
         } finally {
             if (realm != null) {
                 realm.close();
@@ -105,16 +124,14 @@ public class FavoritePhotosFragment extends Fragment implements PhotosDownloader
     }
 
     private void setPhotosURLs() {
-        int size = photos.size();
-        photosURLs = new String[size];
+        int size = photoItems.size();
         for (int index = 0; index < size; index++) {
-            photosURLs[index] = photos.get(index).getPicture();
+            photosURLs.add(photoItems.get(index).getPicture());
         }
     }
 
     @Override
     public void setImages(List<Bitmap> downloadedPhotos) {
-        this.downloadedPhotos = downloadedPhotos;
         favoritePhotosAdapter.setPhotos(downloadedPhotos);
         StaggeredGridLayoutManager staggeredGridLayoutManager =
                 new StaggeredGridLayoutManager(2, LinearLayoutManager.VERTICAL);
@@ -134,7 +151,7 @@ public class FavoritePhotosFragment extends Fragment implements PhotosDownloader
         private List<String> selected;
         private LayoutInflater inflater;
 
-        public FavoritePhotosAdapter(){
+        public FavoritePhotosAdapter() {
             photos = new LinkedList<>();
             selected = new LinkedList<>();
             inflater = LayoutInflater.from(getContext());
@@ -148,7 +165,7 @@ public class FavoritePhotosFragment extends Fragment implements PhotosDownloader
 
         @Override
         public void onBindViewHolder(@NonNull final PhotoHolder viewHolder, int position) {
-            final String itemTouched = photosURLs[position];
+            final String itemTouched = photoItems.get(position).getPicture();
             viewHolder.photo.setImageBitmap(photos.get(position));
             viewHolder.photo.setOnClickListener(new View.OnClickListener() {
                 @RequiresApi(api = Build.VERSION_CODES.KITKAT)
@@ -196,7 +213,17 @@ public class FavoritePhotosFragment extends Fragment implements PhotosDownloader
             return selected;
         }
 
-        private class PhotoHolder extends RecyclerView.ViewHolder{
+        public void setSelected(){
+            selected = null;
+            selected = new LinkedList<>();
+        }
+
+        public void removeItem(int position) {
+            photos.remove(position);
+            notifyItemRemoved(position);
+        }
+
+        private class PhotoHolder extends RecyclerView.ViewHolder {
 
             ImageView photo;
 

@@ -16,6 +16,13 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
+    <include layout="@layout/list_skeleton_loader"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/title_template"
+        app:layout_constraintBottom_toTopOf="@+id/add_more_photos"/>
+
     <android.support.v7.widget.RecyclerView
         android:id="@+id/favorite_photos"
         android:layout_width="match_parent"
