@@ -41,6 +41,7 @@ public class FavoritePhotosFragment extends Fragment implements PhotosDownloader
     private FavoritePhotosAdapter favoritePhotosAdapter;
     private Button removePhotos;
     private OnButtonsListener onButtonsListener;
+    private ShimmerFrameLayout skeletonLayout;
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
@@ -50,7 +51,8 @@ public class FavoritePhotosFragment extends Fragment implements PhotosDownloader
         favoritePhotos = rootView.findViewById(R.id.favorite_photos);
         removePhotos = rootView.findViewById(R.id.remove_photos);
         Button addPhotos = rootView.findViewById(R.id.add_more_photos);
-        ShimmerFrameLayout skeletonLayout = rootView.findViewById(R.id.parentShimmerLayout);
+        skeletonLayout = rootView.findViewById(R.id.parentShimmerLayout);
+        skeletonLayout.setVisibility(View.VISIBLE);
         removePhotos.setVisibility(View.GONE);
         onButtonsListener = (OnButtonsListener) rootView.getContext();
         removePhotos.setOnClickListener(new View.OnClickListener() {
@@ -132,6 +134,7 @@ public class FavoritePhotosFragment extends Fragment implements PhotosDownloader
 
     @Override
     public void setImages(List<Bitmap> downloadedPhotos) {
+        skeletonLayout.setVisibility(View.GONE);
         favoritePhotosAdapter.setPhotos(downloadedPhotos);
         StaggeredGridLayoutManager staggeredGridLayoutManager =
                 new StaggeredGridLayoutManager(2, LinearLayoutManager.VERTICAL);

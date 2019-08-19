@@ -11,24 +11,19 @@ import android.support.v4.app.Fragment;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
-import android.support.v7.widget.SearchView;
 import android.support.v7.widget.StaggeredGridLayoutManager;
 import android.text.Editable;
-import android.text.TextUtils;
 import android.text.TextWatcher;
-import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
-import android.widget.TextView;
 
 import com.example.leegram.PhotosDownloader;
 import com.example.leegram.R;
 import com.example.leegram.model.PhotoItem;
-import com.facebook.shimmer.ShimmerFrameLayout;
 
 import java.time.format.DateTimeFormatter;
 import java.util.LinkedList;
@@ -64,7 +59,6 @@ public class SearchPhotosFragment extends Fragment implements PhotosDownloader.F
         skeletonLayout = rootView.findViewById(R.id.parentShimmerLayout);
         addToFavorites.setVisibility(View.GONE);
         searchPhotosListAdapter = new SearchPhotosListAdapter();
-
         addToFavorites.setOnClickListener(new View.OnClickListener() {
             @RequiresApi(api = Build.VERSION_CODES.O)
             @Override
