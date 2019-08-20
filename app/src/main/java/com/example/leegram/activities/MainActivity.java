@@ -15,12 +15,16 @@ import io.realm.Realm;
 public class MainActivity extends AppCompatActivity implements NoDataFragment.OnAddPhotoButtonClickListener,
         SearchPhotosFragment.OnClickAddButtonListener, FavoritePhotosFragment.OnButtonsListener {
     private NoDataFragment noDataFragment;
+    private SearchPhotosFragment searchPhotosFragment;
+    private  FavoritePhotosFragment favoritePhotosFragment;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         Realm.init(this);
+        searchPhotosFragment = new SearchPhotosFragment();
+        favoritePhotosFragment = new FavoritePhotosFragment();
         noDataFragment = new NoDataFragment();
         FragmentManager fragmentManager = getSupportFragmentManager();
         fragmentManager.beginTransaction()
@@ -30,7 +34,6 @@ public class MainActivity extends AppCompatActivity implements NoDataFragment.On
 
     public void onAddPhotoButtonClicked() {
         FragmentManager goToSearchPhotoScreen = getSupportFragmentManager();
-        SearchPhotosFragment searchPhotosFragment = new SearchPhotosFragment();
         goToSearchPhotoScreen.beginTransaction()
                 .replace(R.id.main_activity_container, searchPhotosFragment)
                 .commit();
@@ -40,7 +43,6 @@ public class MainActivity extends AppCompatActivity implements NoDataFragment.On
     @Override
     public void onClickAddButton() {
         FragmentManager goToSearchPhotoScreen = getSupportFragmentManager();
-        FavoritePhotosFragment favoritePhotosFragment = new FavoritePhotosFragment();
         goToSearchPhotoScreen.beginTransaction()
                 .replace(R.id.main_activity_container, favoritePhotosFragment)
                 .commit();
@@ -57,7 +59,6 @@ public class MainActivity extends AppCompatActivity implements NoDataFragment.On
     @Override
     public void onAddButtonListener() {
         FragmentManager goToSearchPhotoScreen = getSupportFragmentManager();
-        SearchPhotosFragment searchPhotosFragment = new SearchPhotosFragment();
         goToSearchPhotoScreen.beginTransaction()
                 .replace(R.id.main_activity_container, searchPhotosFragment)
                 .commit();

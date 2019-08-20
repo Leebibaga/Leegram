@@ -28,7 +28,7 @@ import java.util.Objects;
 import io.realm.Realm;
 import io.realm.RealmResults;
 
-public class FavoritePhotosFragment extends Fragment implements PhotosDownloader.FinishDownloadingPhotos {
+public class FavoritePhotosFragment extends Fragment implements PhotosDownloader.PhotoDownloadCallback {
 
     public interface OnButtonsListener {
         void onNoPictureListener();
@@ -141,7 +141,6 @@ public class FavoritePhotosFragment extends Fragment implements PhotosDownloader
 
     @Override
     public void setURLs(List<String> urls) {
-
     }
 
 

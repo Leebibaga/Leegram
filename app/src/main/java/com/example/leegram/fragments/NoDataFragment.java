@@ -13,6 +13,7 @@ import com.example.leegram.R;
 
 public class NoDataFragment extends Fragment {
     private OnAddPhotoButtonClickListener mAddPhotos;
+    private View rootView;
 
     public NoDataFragment(){
 
@@ -25,15 +26,9 @@ public class NoDataFragment extends Fragment {
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
-        final View rootView = inflater.inflate(R.layout.fragment_no_data, container, false);
+        rootView = inflater.inflate(R.layout.fragment_no_data, container, false);
         Button addPhotosToList = rootView.findViewById(R.id.add_to_list);
-        addPhotosToList.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                mAddPhotos.onAddPhotoButtonClicked();
-            }
-        });
-        // Inflate the layout for this fragment
+        addPhotosToList.setOnClickListener(v -> mAddPhotos.onAddPhotoButtonClicked());
         return rootView;
     }
 

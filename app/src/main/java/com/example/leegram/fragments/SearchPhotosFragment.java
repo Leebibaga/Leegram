@@ -1,5 +1,6 @@
 package com.example.leegram.fragments;
 
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.os.Build;
@@ -7,28 +8,25 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.support.annotation.NonNull;
 import android.support.annotation.RequiresApi;
+import android.support.design.widget.Snackbar;
 import android.support.v4.app.Fragment;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
-import android.support.v7.widget.SearchView;
 import android.support.v7.widget.StaggeredGridLayoutManager;
 import android.text.Editable;
-import android.text.TextUtils;
 import android.text.TextWatcher;
-import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.inputmethod.InputMethodManager;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
-import android.widget.TextView;
 
 import com.example.leegram.PhotosDownloader;
 import com.example.leegram.R;
 import com.example.leegram.model.PhotoItem;
-import com.facebook.shimmer.ShimmerFrameLayout;
 
 import java.time.format.DateTimeFormatter;
 import java.util.LinkedList;
@@ -37,43 +35,55 @@ import java.util.Objects;
 
 import io.realm.Realm;
 
-public class SearchPhotosFragment extends Fragment implements PhotosDownloader.FinishDownloadingPhotos {
+public class SearchPhotosFragment extends Fragment implements PhotosDownloader.PhotoDownloadCallback {
 
     public interface OnClickAddButtonListener {
         void onClickAddButton();
     }
 
+    // view
+    private View rootView;
     private RecyclerView listOfPhotos;
     private Button addToFavorites;
-    private SearchPhotosListAdapter searchPhotosListAdapter;
-    private Handler handleSpinner = new Handler();
-    private Runnable delayCounter;
     private EditText searchPhotoBar;
-    private OnClickAddButtonListener mClickListener;
     private View skeletonLayout;
 
+    // data
+    private Runnable delayCounter;
+    private Handler handleSpinner = new Handler();
+    private OnClickAddButtonListener mClickListener;
+
+    // adapters
+    private SearchPhotosListAdapter searchPhotosListAdapter;
 
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
+        if (rootView == null){
+            rootView = inflater.inflate(R.layout.fragment_search_photos, container, false);
+            searchPhotoBar = rootView.findViewById(R.id.search_photos_bar);
+            listOfPhotos = rootView.findViewById(R.id.photos_list);
+            addToFavorites = rootView.findViewById(R.id.add_to_favorites);
+            skeletonLayout = rootView.findViewById(R.id.parentShimmerLayout);
+        }
 
-        final View rootView = inflater.inflate(R.layout.fragment_search_photos, container, false);
-        searchPhotoBar = rootView.findViewById(R.id.search_photos_bar);
-        listOfPhotos = rootView.findViewById(R.id.photos_list);
-        addToFavorites = rootView.findViewById(R.id.add_to_favorites);
-        skeletonLayout = rootView.findViewById(R.id.parentShimmerLayout);
-        addToFavorites.setVisibility(View.GONE);
+        initUI();
+
+        return rootView;
+    }
+
+    @SuppressLint("NewApi")
+    private void initUI(){
         searchPhotosListAdapter = new SearchPhotosListAdapter();
-
-        addToFavorites.setOnClickListener(new View.OnClickListener() {
-            @RequiresApi(api = Build.VERSION_CODES.O)
-            @Override
-            public void onClick(View v) {
-                setRealmObject(searchPhotosListAdapter.getSelectedPhotos());
-                mClickListener.onClickAddButton();
-            }
+        StaggeredGridLayoutManager staggeredGridLayoutManager =
+                new StaggeredGridLayoutManager(2, LinearLayoutManager.VERTICAL);
+        listOfPhotos.setLayoutManager(staggeredGridLayoutManager);
+        listOfPhotos.setAdapter(searchPhotosListAdapter);
+        addToFavorites.setOnClickListener(v -> {
+            setRealmObject(searchPhotosListAdapter.getSelectedPhotos());
+            mClickListener.onClickAddButton();
         });
-
+        showSoftKeyboard(searchPhotoBar);
         searchPhotoBar.addTextChangedListener(new TextWatcher() {
             @Override
             public void beforeTextChanged(CharSequence s, int start, int count, int after) {
@@ -83,13 +93,10 @@ public class SearchPhotosFragment extends Fragment implements PhotosDownloader.F
             @Override
             public void onTextChanged(CharSequence s, int start, int before, int count) {
                 if (delayCounter == null) {
-                    delayCounter = new Runnable() {
-                        @Override
-                        public void run() {
-                            if(!searchPhotoBar.getText().toString().isEmpty()) {
-                                skeletonLayout.setVisibility(View.VISIBLE);
-                                new PhotosDownloader(SearchPhotosFragment.this, searchPhotoBar.getText().toString());
-                            }
+                    delayCounter = () -> {
+                        if(!searchPhotoBar.getText().toString().isEmpty()) {
+                            skeletonLayout.setVisibility(View.VISIBLE);
+                            new PhotosDownloader(SearchPhotosFragment.this, searchPhotoBar.getText().toString());
                         }
                     };
                 }
@@ -102,7 +109,14 @@ public class SearchPhotosFragment extends Fragment implements PhotosDownloader.F
 
             }
         });
-        return rootView;
+    }
+
+    public void showSoftKeyboard(View view) {
+        if (view.requestFocus()) {
+            InputMethodManager imm = (InputMethodManager)
+                  Objects.requireNonNull(getContext()).getSystemService(Context.INPUT_METHOD_SERVICE);
+            imm.toggleSoftInput(InputMethodManager.SHOW_FORCED,0);
+        }
     }
 
     @Override
@@ -134,10 +148,7 @@ public class SearchPhotosFragment extends Fragment implements PhotosDownloader.F
     public void setImages(List<Bitmap> downloadedPhotos) {
         skeletonLayout.setVisibility(View.GONE);
         searchPhotosListAdapter.setPhotos(downloadedPhotos);
-        StaggeredGridLayoutManager staggeredGridLayoutManager =
-                new StaggeredGridLayoutManager(2, LinearLayoutManager.VERTICAL);
-        listOfPhotos.setLayoutManager(staggeredGridLayoutManager);
-        listOfPhotos.setAdapter(searchPhotosListAdapter);
+        searchPhotosListAdapter.notifyDataSetChanged();
     }
 
     @Override
@@ -204,7 +215,6 @@ public class SearchPhotosFragment extends Fragment implements PhotosDownloader.F
             holder.photo.setBackgroundColor(ContextCompat.getColor(Objects.requireNonNull(getContext()), android.R.color.transparent));
             holder.photo.setPadding(-10, -10, -10, -10);
         }
-
 
         @Override
         public int getItemCount() {

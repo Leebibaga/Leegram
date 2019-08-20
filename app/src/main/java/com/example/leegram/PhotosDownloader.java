@@ -1,8 +1,5 @@
 package com.example.leegram;
 
-import android.annotation.SuppressLint;
-import android.app.ProgressDialog;
-import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.os.AsyncTask;
@@ -11,7 +8,6 @@ import android.support.annotation.NonNull;
 import com.example.leegram.unsplashed.Photo;
 import com.example.leegram.unsplashed.SplashedApi;
 import com.example.leegram.unsplashed.UnsplashedPhotos;
-import com.facebook.shimmer.ShimmerFrameLayout;
 
 import java.io.IOException;
 import java.net.HttpURLConnection;
@@ -26,24 +22,25 @@ import retrofit2.Response;
 
 public class PhotosDownloader extends AsyncTask<String, Bitmap, List<Bitmap>> {
 
-    public interface FinishDownloadingPhotos {
+    private final String TOKEN = "210590bd55fa23badf70b162392aa62e3bc62b7029e01eb0f9db858abc0c7cc6";
+
+    public interface PhotoDownloadCallback {
         void setImages(List<Bitmap> downloadedPhotos);
         void setURLs(List<String> urls);
     }
 
-    private String TOKEN = "210590bd55fa23badf70b162392aa62e3bc62b7029e01eb0f9db858abc0c7cc6";
     private LinkedList<Bitmap> downloadedPhotos = new LinkedList<>();
     private LinkedList<String> photosUrls = new LinkedList<>();
-    private FinishDownloadingPhotos finishDownloadingPhotos;
+    private PhotoDownloadCallback finishDownloadingPhotos;
     private int pageNumber = 1;
 
 
-    public PhotosDownloader(FinishDownloadingPhotos callback, String query) {
+    public PhotosDownloader(PhotoDownloadCallback callback, String query) {
         this.finishDownloadingPhotos = callback;
         getListOfPhotoURLs(query);
     }
 
-    public PhotosDownloader(FinishDownloadingPhotos callback) {
+    public PhotosDownloader(PhotoDownloadCallback callback) {
         finishDownloadingPhotos = callback;
 
     }
