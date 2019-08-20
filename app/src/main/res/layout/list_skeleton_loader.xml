@@ -5,8 +5,8 @@
     android:id="@+id/parentShimmerLayout"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:visibility="gone"
     app:shimmer_base_color="@android:color/white"
+    android:visibility="gone"
     app:shimmer_duration="1200"
     app:shimmer_direction="top_to_bottom"
     app:shimmer_auto_start="true"
@@ -19,8 +19,8 @@
 
         <View
             android:id="@+id/image"
-            android:layout_width="100dp"
-            android:layout_height="100dp"
+            android:layout_width="150dp"
+            android:layout_height="150dp"
             android:layout_margin="10dp"
             android:background="@color/skeleton_bg"
             app:layout_constraintStart_toStartOf="parent"
@@ -28,7 +28,7 @@
 
         <View
             android:id="@+id/image_1"
-            android:layout_width="100dp"
+            android:layout_width="150dp"
             android:layout_height="100dp"
             android:layout_margin="10dp"
             android:background="@color/skeleton_bg"
@@ -37,8 +37,8 @@
 
         <View
             android:id="@+id/image_2"
-            android:layout_width="100dp"
-            android:layout_height="100dp"
+            android:layout_width="150dp"
+            android:layout_height="200dp"
             android:layout_margin="10dp"
             android:background="@color/skeleton_bg"
             app:layout_constraintStart_toStartOf="parent"
@@ -46,8 +46,8 @@
 
         <View
             android:id="@+id/image_3"
-            android:layout_width="100dp"
-            android:layout_height="100dp"
+            android:layout_width="150dp"
+            android:layout_height="85dp"
             android:layout_margin="10dp"
             android:background="@color/skeleton_bg"
             app:layout_constraintStart_toStartOf="parent"
@@ -55,8 +55,8 @@
 
         <View
             android:id="@+id/image_4"
-            android:layout_width="100dp"
-            android:layout_height="100dp"
+            android:layout_width="150dp"
+            android:layout_height="90dp"
             android:layout_margin="10dp"
             android:background="@color/skeleton_bg"
             app:layout_constraintEnd_toEndOf="parent"
@@ -64,30 +64,30 @@
 
         <View
             android:id="@+id/image_5"
-            android:layout_width="100dp"
-            android:layout_height="100dp"
+            android:layout_width="150dp"
+            android:layout_height="185dp"
             android:layout_margin="10dp"
             android:background="@color/skeleton_bg"
             app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintTop_toTopOf="@+id/image_1" />
+            app:layout_constraintTop_toBottomOf="@+id/image_4" />
 
         <View
             android:id="@+id/image_6"
-            android:layout_width="100dp"
-            android:layout_height="100dp"
+            android:layout_width="150dp"
+            android:layout_height="120dp"
             android:layout_margin="10dp"
             android:background="@color/skeleton_bg"
             app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintTop_toTopOf="@+id/image_2" />
+            app:layout_constraintTop_toBottomOf="@+id/image_5" />
 
         <View
             android:id="@+id/image_7"
-            android:layout_width="100dp"
-            android:layout_height="100dp"
+            android:layout_width="150dp"
+            android:layout_height="110dp"
             android:layout_margin="10dp"
             android:background="@color/skeleton_bg"
             app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintTop_toTopOf="@+id/image_3" />
+            app:layout_constraintTop_toBottomOf="@+id/image_6" />
 
     </android.support.constraint.ConstraintLayout>
 
