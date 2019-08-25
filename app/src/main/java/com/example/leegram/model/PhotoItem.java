@@ -1,24 +1,27 @@
 package com.example.leegram.model;
 
-import java.time.format.DateTimeFormatter;
-
 import io.realm.RealmObject;
 import io.realm.annotations.PrimaryKey;
 
 public class PhotoItem extends RealmObject {
 
     @PrimaryKey
-    private String picture;
+    private String pictureURL;
     private String date;
     private String api;
     private String category;
+    private byte[] picture;
 
-    public String getPicture() {
-        return picture;
+    public String getPictureURL() {
+        return pictureURL;
     }
 
     public String getDate() {
         return date;
+    }
+
+    public byte[] getPicture() {
+        return picture;
     }
 
     public void setDate(String date) {
@@ -41,7 +44,11 @@ public class PhotoItem extends RealmObject {
         this.category = category;
     }
 
-    public void setPicture(String picture) {
+    public void setPictureURL(String pictureURL) {
+        this.pictureURL = pictureURL;
+    }
+
+    public void setPicture(byte[] picture) {
         this.picture = picture;
     }
 }

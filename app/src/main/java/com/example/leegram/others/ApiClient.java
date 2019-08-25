@@ -1,4 +1,4 @@
-package com.example.leegram;
+package com.example.leegram.others;
 
 import retrofit2.Retrofit;
 import retrofit2.converter.gson.GsonConverterFactory;

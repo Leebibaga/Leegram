@@ -1,4 +1,4 @@
-package com.example.leegram;
+package com.example.leegram.others;
 
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -22,11 +22,12 @@ import retrofit2.Response;
 
 public class PhotosDownloader extends AsyncTask<String, Bitmap, List<Bitmap>> {
 
-    private final String TOKEN = "210590bd55fa23badf70b162392aa62e3bc62b7029e01eb0f9db858abc0c7cc6";
+    private String TOKEN = "210590bd55fa23badf70b162392aa62e3bc62b7029e01eb0f9db858abc0c7cc6";
 
     public interface PhotoDownloadCallback {
         void setImages(List<Bitmap> downloadedPhotos);
         void setURLs(List<String> urls);
+
     }
 
     private LinkedList<Bitmap> downloadedPhotos = new LinkedList<>();
@@ -42,7 +43,6 @@ public class PhotosDownloader extends AsyncTask<String, Bitmap, List<Bitmap>> {
 
     public PhotosDownloader(PhotoDownloadCallback callback) {
         finishDownloadingPhotos = callback;
-
     }
 
     @Override

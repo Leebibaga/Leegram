@@ -8,7 +8,6 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.support.annotation.NonNull;
 import android.support.annotation.RequiresApi;
-import android.support.design.widget.Snackbar;
 import android.support.v4.app.Fragment;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.widget.LinearLayoutManager;
@@ -24,10 +23,11 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
 
-import com.example.leegram.PhotosDownloader;
+import com.example.leegram.others.PhotosDownloader;
 import com.example.leegram.R;
 import com.example.leegram.model.PhotoItem;
 
+import java.io.ByteArrayOutputStream;
 import java.time.format.DateTimeFormatter;
 import java.util.LinkedList;
 import java.util.List;
@@ -80,14 +80,17 @@ public class SearchPhotosFragment extends Fragment implements PhotosDownloader.P
         listOfPhotos.setLayoutManager(staggeredGridLayoutManager);
         listOfPhotos.setAdapter(searchPhotosListAdapter);
         addToFavorites.setOnClickListener(v -> {
-            setRealmObject(searchPhotosListAdapter.getSelectedPhotos());
+            setPhotoInRealm(searchPhotosListAdapter.getSelectedPhotos());
+            addToFavorites.setVisibility(View.GONE);
+            searchPhotoBar.getText().clear();
             mClickListener.onClickAddButton();
         });
         showSoftKeyboard(searchPhotoBar);
         searchPhotoBar.addTextChangedListener(new TextWatcher() {
+            String textBeforeChanged;
             @Override
             public void beforeTextChanged(CharSequence s, int start, int count, int after) {
-
+                textBeforeChanged = searchPhotoBar.getText().toString();
             }
 
             @Override
@@ -101,7 +104,7 @@ public class SearchPhotosFragment extends Fragment implements PhotosDownloader.P
                     };
                 }
                 handleSpinner.removeCallbacks(delayCounter);
-                handleSpinner.postDelayed(delayCounter, 500);
+                handleSpinner.postDelayed(delayCounter, 600);
             }
 
             @Override
@@ -119,29 +122,31 @@ public class SearchPhotosFragment extends Fragment implements PhotosDownloader.P
         }
     }
 
+    @RequiresApi(api = Build.VERSION_CODES.O)
+    public void setPhotoInRealm(List<String> selectedPhotos) {
+        try (Realm realm = Realm.getDefaultInstance()) {
+            for (String photoURL : selectedPhotos) {
+                final PhotoItem photoItem = new PhotoItem();
+                photoItem.setPictureURL(photoURL);
+                photoItem.setApi("unsplashed");
+                int index = searchPhotosListAdapter.getPhotosURLs().indexOf(photoURL);
+                photoItem.setPicture(photoToByte(searchPhotosListAdapter.getPhotos().get(index)));
+                photoItem.setDate(DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm:ss").toString());
+                realm.executeTransaction(realm1 -> realm1.insertOrUpdate(photoItem));
+            }
+        }
+    }
+
+    public byte[] photoToByte(Bitmap photo){
+        ByteArrayOutputStream stream = new ByteArrayOutputStream();
+        photo.compress(Bitmap.CompressFormat.PNG, 100, stream);
+        return stream.toByteArray();
+    }
+
     @Override
     public void onAttach(Context context) {
         super.onAttach(context);
         mClickListener = (OnClickAddButtonListener) context;
-    }
-
-
-    @RequiresApi(api = Build.VERSION_CODES.O)
-    private void setRealmObject(List<String> selectedPhotos) {
-        try (Realm realm = Realm.getDefaultInstance()) {
-            for (String photoURL : selectedPhotos) {
-                final PhotoItem photoItem = new PhotoItem();
-                photoItem.setPicture(photoURL);
-                photoItem.setApi("unsplashed");
-                photoItem.setDate(DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm:ss").toString());
-                realm.executeTransaction(new Realm.Transaction() {
-                    @Override
-                    public void execute(@NonNull Realm realm) {
-                        realm.insertOrUpdate(photoItem);
-                    }
-                });
-            }
-        }
     }
 
     @Override
@@ -163,6 +168,7 @@ public class SearchPhotosFragment extends Fragment implements PhotosDownloader.P
 
         SearchPhotosListAdapter() {
             photos = new LinkedList<>();
+            photosURLs = new LinkedList<>();
             selected = new LinkedList<>();
             inflater = LayoutInflater.from(getContext());
         }
@@ -178,22 +184,19 @@ public class SearchPhotosFragment extends Fragment implements PhotosDownloader.P
         public void onBindViewHolder(@NonNull final PictureHolder pictureHolder, int position) {
             final String itemTouched = photosURLs.get(position);
             pictureHolder.photo.setImageBitmap(photos.get(position));
-            pictureHolder.photo.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View view) {
-                    if (selected.contains(itemTouched)) {
-                        selected.remove(itemTouched);
-                        unhighlightView(pictureHolder);
-                    } else {
-                        selected.add(itemTouched);
-                        highlightView(pictureHolder);
-                    }
+            pictureHolder.photo.setOnClickListener(view -> {
+                if (selected.contains(itemTouched)) {
+                    selected.remove(itemTouched);
+                    unhighlightView(pictureHolder);
+                } else {
+                    selected.add(itemTouched);
+                    highlightView(pictureHolder);
+                }
 
-                    if (selected.size() > 0) {
-                        addToFavorites.setVisibility(View.VISIBLE);
-                    } else {
-                        addToFavorites.setVisibility(View.GONE);
-                    }
+                if (selected.size() > 0) {
+                    addToFavorites.setVisibility(View.VISIBLE);
+                } else {
+                    addToFavorites.setVisibility(View.GONE);
                 }
             });
 
@@ -225,12 +228,20 @@ public class SearchPhotosFragment extends Fragment implements PhotosDownloader.P
             this.photos = photos;
         }
 
+        public List<Bitmap> getPhotos() {
+            return photos;
+        }
+
         public List<String> getSelectedPhotos() {
             return selected;
         }
 
         public void setPhotosURLs(List<String> urls) {
             this.photosURLs = urls;
+        }
+
+        public List<String> getPhotosURLs() {
+            return photosURLs;
         }
 
         private class PictureHolder extends RecyclerView.ViewHolder {
