@@ -7,6 +7,7 @@ import java.util.LinkedList;
 import java.util.List;
 
 import io.realm.Realm;
+
 import io.realm.RealmConfiguration;
 import io.realm.RealmResults;
 

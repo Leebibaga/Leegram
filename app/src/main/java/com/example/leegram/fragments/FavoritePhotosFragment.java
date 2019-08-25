@@ -10,6 +10,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.annotation.RequiresApi;
+import android.support.design.widget.FloatingActionButton;
 import android.support.v4.app.ActivityOptionsCompat;
 import android.support.v4.app.Fragment;
 import android.support.v7.widget.LinearLayoutManager;
@@ -32,6 +33,8 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
 
+import static android.app.Activity.RESULT_OK;
+
 public class FavoritePhotosFragment extends Fragment {
 
     public interface OnButtonsListener {
@@ -39,10 +42,10 @@ public class FavoritePhotosFragment extends Fragment {
 
         void onAddButtonListener();
     }
+
     //view
     private RecyclerView favoritePhotos;
-    private Button removePhotos;
-    private Button addPhotos;
+    private FloatingActionButton addPhoto;
     private View rootView;
 
     //data
@@ -62,7 +65,7 @@ public class FavoritePhotosFragment extends Fragment {
     }
 
     @Override
-    public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
+    public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         if (rootView == null) {
             rootView = inflater.inflate(R.layout.fragment_favorite_photos, container, false);
             findViews();
@@ -72,32 +75,24 @@ public class FavoritePhotosFragment extends Fragment {
                     new StaggeredGridLayoutManager(2, LinearLayoutManager.VERTICAL);
             favoritePhotos.setLayoutManager(staggeredGridLayoutManager);
             favoritePhotos.setAdapter(favoritePhotosAdapter);
-            removePhotos.setOnClickListener(v -> {
-                removePhotosFromList();
-                removePhotos.setVisibility(View.GONE);
-                favoritePhotosAdapter.setSelected();
+            addPhoto.setOnClickListener(v -> {
                 if (photoItems.isEmpty()) {
                     onButtonsListener.onNoPictureListener();
-                    favoritePhotosAdapter.setSelected();
+                } else {
+                    onButtonsListener.onAddButtonListener();
                 }
             });
-            addPhotos.setOnClickListener(v -> {
-                onButtonsListener.onAddButtonListener();
-            });
+            updateData();
         }
-        photoItems.clear();
-        photoItems.addAll(communicateWithRealm.getPhotoItems());
-        setPhotosURLs();
-        favoritePhotosAdapter.setPhotos();
+
         skeletonLayout.setVisibility(View.GONE);
         return rootView;
     }
 
     private void findViews() {
         favoritePhotos = rootView.findViewById(R.id.favorite_photos);
-        removePhotos = rootView.findViewById(R.id.remove_photos);
-        addPhotos = rootView.findViewById(R.id.add_more_photos);
         skeletonLayout = rootView.findViewById(R.id.parentShimmerLayout);
+        addPhoto = rootView.findViewById(R.id.fab);
     }
 
     private List<Bitmap> convertBitmap() {
@@ -107,16 +102,6 @@ public class FavoritePhotosFragment extends Fragment {
                     (photoItem.getPicture(), 0, photoItem.getPicture().length));
         }
         return downloadedPhotos;
-    }
-
-    private void removePhotosFromList() {
-        List<String> selected = favoritePhotosAdapter.getSelectedPhotos();
-        for (String item : selected) {
-            communicateWithRealm.removeFromRealm("pictureURL", item);
-            favoritePhotosAdapter.removeItem(photosURLs.indexOf(item));
-            photoItems.remove(photosURLs.indexOf(item));
-            photosURLs.remove(item);
-        }
     }
 
     private void setPhotosURLs() {
@@ -161,13 +146,7 @@ public class FavoritePhotosFragment extends Fragment {
                 getActivity().overridePendingTransition(R.anim.enter_animation, R.anim.exit_animation);
             });
 
-            viewHolder.photo.setOnLongClickListener(V -> {
-                Intent intent = new Intent(getActivity(), EditFavoriteListActivity.class);
-                startActivity(intent,  ActivityOptions.makeSceneTransitionAnimation(getActivity()).toBundle());
-                return true;
-            });
         }
-
 
         @Override
         public int getItemCount() {
@@ -179,20 +158,6 @@ public class FavoritePhotosFragment extends Fragment {
             this.photos.addAll(convertBitmap());
             notifyDataSetChanged();
         }
-
-        List<String> getSelectedPhotos() {
-            return selected;
-        }
-
-        public void setSelected() {
-            selected.clear();
-        }
-
-        public void removeItem(int position) {
-            photos.remove(position);
-            notifyItemRemoved(position);
-        }
-
         private class PhotoHolder extends RecyclerView.ViewHolder {
 
             ImageView photo;
@@ -201,6 +166,23 @@ public class FavoritePhotosFragment extends Fragment {
                 super(itemView);
                 photo = itemView.findViewById(R.id.photo_item);
             }
+        }
+    }
+
+    private void updateData() {
+        favoritePhotosAdapter.notifyDataSetChanged();
+        photoItems.clear();
+        photoItems.addAll(communicateWithRealm.getPhotoItems());
+        setPhotosURLs();
+        favoritePhotosAdapter.setPhotos();
+    }
+
+    @Override
+    public void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+
+        if(resultCode == RESULT_OK) {
+            updateData();
         }
     }
 }

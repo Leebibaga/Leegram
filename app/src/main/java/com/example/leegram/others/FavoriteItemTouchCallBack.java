@@ -10,15 +10,16 @@ public class FavoriteItemTouchCallBack extends ItemTouchHelper.Callback {
 
     EditFavoriteListFragment.EditFavoriteListPhotosAdapter editFavoriteListPhotosAdapter;
 
-    public FavoriteItemTouchCallBack(EditFavoriteListFragment.EditFavoriteListPhotosAdapter editFavoriteListPhotosAdapter){
+
+    public FavoriteItemTouchCallBack(EditFavoriteListFragment.EditFavoriteListPhotosAdapter editFavoriteListPhotosAdapter) {
         this.editFavoriteListPhotosAdapter = editFavoriteListPhotosAdapter;
     }
 
     @Override
     public int getMovementFlags(@NonNull RecyclerView recyclerView, @NonNull RecyclerView.ViewHolder viewHolder) {
         int dragFlags = ItemTouchHelper.UP | ItemTouchHelper.DOWN | ItemTouchHelper.LEFT | ItemTouchHelper.RIGHT;
-        int swipeFlags = ItemTouchHelper.START | ItemTouchHelper.END;
-        return makeMovementFlags(dragFlags,swipeFlags);
+        int swipeFlags = ItemTouchHelper.START | ItemTouchHelper.END ;
+        return makeMovementFlags(dragFlags, swipeFlags);
     }
 
     @Override
@@ -31,9 +32,5 @@ public class FavoriteItemTouchCallBack extends ItemTouchHelper.Callback {
     public void onSwiped(@NonNull RecyclerView.ViewHolder viewHolder, int i) {
         editFavoriteListPhotosAdapter.onItemDismiss(viewHolder.getAdapterPosition());
     }
-
-    public interface ItemTouchHelperAdapter {
-        boolean  onItemMove(int fromPosition, int toPosition);
-        void onItemDismiss(int position);
-    }
 }
+

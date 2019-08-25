@@ -8,7 +8,6 @@ import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.annotation.RequiresApi;
 import android.support.v4.app.Fragment;
-import android.support.v4.content.ContextCompat;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.StaggeredGridLayoutManager;
@@ -28,7 +27,6 @@ import com.example.leegram.others.OnStartDragListener;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Objects;
 
 public class EditFavoriteListFragment extends Fragment implements OnStartDragListener {
     //view
@@ -93,8 +91,7 @@ public class EditFavoriteListFragment extends Fragment implements OnStartDragLis
         mItemTouchHelper.startDrag(viewHolder);
     }
 
-    public class EditFavoriteListPhotosAdapter extends RecyclerView.Adapter<EditFavoriteListPhotosAdapter.PictureHolder>
-            implements FavoriteItemTouchCallBack.ItemTouchHelperAdapter {
+    public class EditFavoriteListPhotosAdapter extends RecyclerView.Adapter<EditFavoriteListPhotosAdapter.PictureHolder> {
 
         private List<Bitmap> photos;
         private LayoutInflater inflater;
@@ -118,11 +115,14 @@ public class EditFavoriteListFragment extends Fragment implements OnStartDragLis
         @Override
         public void onBindViewHolder(@NonNull final PictureHolder viewHolder, int position) {
             viewHolder.photo.setImageBitmap(photos.get(position));
-            viewHolder.photo.setOnTouchListener((v, event) -> {
-                if (event.getActionMasked() == MotionEvent.ACTION_DOWN) {
-                    mDragStartListener.onStartDrag(viewHolder);
-                }
-                return false;
+            viewHolder.photo.setOnLongClickListener(V -> {
+                viewHolder.photo.setOnTouchListener((v, event) -> {
+                    if (event.getActionMasked() == MotionEvent.ACTION_DOWN) {
+                        mDragStartListener.onStartDrag(viewHolder);
+                    }
+                    return false;
+                });
+                return true;
             });
         }
 
@@ -137,8 +137,7 @@ public class EditFavoriteListFragment extends Fragment implements OnStartDragLis
             notifyDataSetChanged();
         }
 
-        @Override
-        public boolean  onItemMove(int fromPosition, int toPosition) {
+        public void onItemMove(int fromPosition, int toPosition) {
             if (fromPosition < toPosition) {
                 for (int i = fromPosition; i < toPosition; i++) {
                     Collections.swap(photos, i, i + 1);
@@ -149,13 +148,18 @@ public class EditFavoriteListFragment extends Fragment implements OnStartDragLis
                 }
             }
             notifyItemMoved(fromPosition, toPosition);
-            return true;
         }
 
-        @Override
         public void onItemDismiss(int position) {
             photos.remove(position);
+            removePhotosFromList(photosURLs.get(position));
             notifyItemRemoved(position);
+        }
+
+        private void removePhotosFromList(String url) {
+                communicateWithRealm.removeFromRealm("pictureURL", url);
+                photoItems.remove(photosURLs.indexOf(url));
+                photosURLs.remove(url);
         }
 
         private class PictureHolder extends RecyclerView.ViewHolder {
