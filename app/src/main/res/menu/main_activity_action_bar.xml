@@ -11,11 +11,4 @@
         android:title="Edit"
         tools:ignore="HardcodedText" />
 
-    <item
-        android:id="@+id/action_save"
-        android:orderInCategory="200"
-        app:showAsAction="always"
-        android:icon="@android:drawable/ic_menu_save"
-        android:title="Save"
-        tools:ignore="HardcodedText" />
 </menu>

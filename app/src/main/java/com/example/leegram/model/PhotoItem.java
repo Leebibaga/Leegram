@@ -1,6 +1,8 @@
 package com.example.leegram.model;
 
+import io.realm.OrderedRealmCollectionChangeListener;
 import io.realm.RealmObject;
+import io.realm.annotations.Index;
 import io.realm.annotations.PrimaryKey;
 
 public class PhotoItem extends RealmObject {
@@ -11,6 +13,8 @@ public class PhotoItem extends RealmObject {
     private String api;
     private String category;
     private byte[] picture;
+    @Index
+    private int position;
 
     public String getPictureURL() {
         return pictureURL;
@@ -50,5 +54,13 @@ public class PhotoItem extends RealmObject {
 
     public void setPicture(byte[] picture) {
         this.picture = picture;
+    }
+
+    public int getPosition() {
+        return position;
+    }
+
+    public void setPosition(int position) {
+        this.position = position;
     }
 }

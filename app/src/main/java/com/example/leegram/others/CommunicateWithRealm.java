@@ -1,13 +1,9 @@
 package com.example.leegram.others;
 
 import com.example.leegram.model.PhotoItem;
-
-
 import java.util.LinkedList;
 import java.util.List;
-
 import io.realm.Realm;
-
 import io.realm.RealmConfiguration;
 import io.realm.RealmResults;
 
@@ -76,5 +72,4 @@ public class CommunicateWithRealm {
         }
         return photoItem;
     }
-
 }

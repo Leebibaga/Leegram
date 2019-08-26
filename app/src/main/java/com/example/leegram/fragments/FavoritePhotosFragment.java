@@ -19,11 +19,7 @@ import android.support.v7.widget.StaggeredGridLayoutManager;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.Button;
 import android.widget.ImageView;
-
-import com.example.leegram.activities.EditFavoriteListActivity;
-import com.example.leegram.others.CommunicateWithRealm;
 import com.example.leegram.R;
 import com.example.leegram.activities.ImageScreenActivity;
 import com.example.leegram.model.PhotoItem;
@@ -32,14 +28,14 @@ import com.facebook.shimmer.ShimmerFrameLayout;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
-
-import static android.app.Activity.RESULT_OK;
+import io.realm.Realm;
+import io.realm.RealmResults;
+import io.realm.Sort;
 
 public class FavoritePhotosFragment extends Fragment {
 
     public interface OnButtonsListener {
         void onNoPictureListener();
-
         void onAddButtonListener();
     }
 
@@ -49,10 +45,9 @@ public class FavoritePhotosFragment extends Fragment {
     private View rootView;
 
     //data
-    private List<PhotoItem> photoItems = new LinkedList<>();
+    private RealmResults<PhotoItem> photoItems;
     private OnButtonsListener onButtonsListener;
     private ShimmerFrameLayout skeletonLayout;
-    private CommunicateWithRealm communicateWithRealm;
     private List<String> photosURLs = new LinkedList<>();
 
     //adapter
@@ -69,7 +64,6 @@ public class FavoritePhotosFragment extends Fragment {
         if (rootView == null) {
             rootView = inflater.inflate(R.layout.fragment_favorite_photos, container, false);
             findViews();
-            communicateWithRealm = new CommunicateWithRealm();
             favoritePhotosAdapter = new FavoritePhotosAdapter();
             StaggeredGridLayoutManager staggeredGridLayoutManager =
                     new StaggeredGridLayoutManager(2, LinearLayoutManager.VERTICAL);
@@ -112,15 +106,28 @@ public class FavoritePhotosFragment extends Fragment {
         }
     }
 
+    private void updateData() {
+        Realm realm = Realm.getDefaultInstance();
+        photoItems = realm
+                .where(PhotoItem.class)
+                .findAll();
+        setPhotosURLs();
+        favoritePhotosAdapter.setPhotos();
+        photoItems.addChangeListener((photoItems, changeSet) -> {
+            photoItems.sort("position");
+            setPhotosURLs();
+            favoritePhotosAdapter.setPhotos();
+            favoritePhotosAdapter.notifyDataSetChanged();
+        });
+    }
+
     public class FavoritePhotosAdapter extends RecyclerView.Adapter<FavoritePhotosAdapter.PhotoHolder> {
 
         private List<Bitmap> photos;
-        private List<String> selected;
         private LayoutInflater inflater;
 
         public FavoritePhotosAdapter() {
             photos = new LinkedList<>();
-            selected = new LinkedList<>();
             inflater = LayoutInflater.from(getContext());
         }
 
@@ -166,23 +173,6 @@ public class FavoritePhotosFragment extends Fragment {
                 super(itemView);
                 photo = itemView.findViewById(R.id.photo_item);
             }
-        }
-    }
-
-    private void updateData() {
-        favoritePhotosAdapter.notifyDataSetChanged();
-        photoItems.clear();
-        photoItems.addAll(communicateWithRealm.getPhotoItems());
-        setPhotosURLs();
-        favoritePhotosAdapter.setPhotos();
-    }
-
-    @Override
-    public void onActivityResult(int requestCode, int resultCode, Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
-
-        if(resultCode == RESULT_OK) {
-            updateData();
         }
     }
 }

@@ -34,6 +34,7 @@ import java.util.List;
 import java.util.Objects;
 
 import io.realm.Realm;
+import io.realm.RealmResults;
 
 public class SearchPhotosFragment extends Fragment implements PhotosDownloader.PhotoDownloadCallback {
 
@@ -59,7 +60,7 @@ public class SearchPhotosFragment extends Fragment implements PhotosDownloader.P
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
-        if (rootView == null){
+        if (rootView == null) {
             rootView = inflater.inflate(R.layout.fragment_search_photos, container, false);
             searchPhotoBar = rootView.findViewById(R.id.search_photos_bar);
             listOfPhotos = rootView.findViewById(R.id.photos_list);
@@ -73,7 +74,7 @@ public class SearchPhotosFragment extends Fragment implements PhotosDownloader.P
     }
 
     @SuppressLint("NewApi")
-    private void initUI(){
+    private void initUI() {
         searchPhotosListAdapter = new SearchPhotosListAdapter();
         StaggeredGridLayoutManager staggeredGridLayoutManager =
                 new StaggeredGridLayoutManager(2, LinearLayoutManager.VERTICAL);
@@ -88,6 +89,7 @@ public class SearchPhotosFragment extends Fragment implements PhotosDownloader.P
         showSoftKeyboard(searchPhotoBar);
         searchPhotoBar.addTextChangedListener(new TextWatcher() {
             String textBeforeChanged;
+
             @Override
             public void beforeTextChanged(CharSequence s, int start, int count, int after) {
                 textBeforeChanged = searchPhotoBar.getText().toString();
@@ -97,7 +99,7 @@ public class SearchPhotosFragment extends Fragment implements PhotosDownloader.P
             public void onTextChanged(CharSequence s, int start, int before, int count) {
                 if (delayCounter == null) {
                     delayCounter = () -> {
-                        if(!searchPhotoBar.getText().toString().isEmpty()) {
+                        if (!searchPhotoBar.getText().toString().isEmpty()) {
                             skeletonLayout.setVisibility(View.VISIBLE);
                             new PhotosDownloader(SearchPhotosFragment.this, searchPhotoBar.getText().toString());
                         }
@@ -117,13 +119,14 @@ public class SearchPhotosFragment extends Fragment implements PhotosDownloader.P
     public void showSoftKeyboard(View view) {
         if (view.requestFocus()) {
             InputMethodManager imm = (InputMethodManager)
-                  Objects.requireNonNull(getContext()).getSystemService(Context.INPUT_METHOD_SERVICE);
-            imm.toggleSoftInput(InputMethodManager.SHOW_FORCED,0);
+                    Objects.requireNonNull(getContext()).getSystemService(Context.INPUT_METHOD_SERVICE);
+            imm.toggleSoftInput(InputMethodManager.SHOW_FORCED, 0);
         }
     }
 
     @RequiresApi(api = Build.VERSION_CODES.O)
     public void setPhotoInRealm(List<String> selectedPhotos) {
+        updatePositionInRealm(selectedPhotos.size());
         try (Realm realm = Realm.getDefaultInstance()) {
             for (String photoURL : selectedPhotos) {
                 final PhotoItem photoItem = new PhotoItem();
@@ -137,7 +140,22 @@ public class SearchPhotosFragment extends Fragment implements PhotosDownloader.P
         }
     }
 
-    public byte[] photoToByte(Bitmap photo){
+    private void updatePositionInRealm(int numberOfNewItems) {
+        List<PhotoItem> photoItems = new LinkedList<>();
+        try (Realm realm = Realm.getDefaultInstance()) {
+            RealmResults<PhotoItem> results = realm
+                    .where(PhotoItem.class)
+                    .findAll();
+            photoItems.addAll(realm.copyFromRealm(results));
+            for(PhotoItem photoItem: photoItems){
+                int oldPosition = photoItem.getPosition();
+                photoItem.setPosition(oldPosition + numberOfNewItems);
+            }
+            realm.executeTransaction(realm1 -> realm1.insertOrUpdate(photoItems));
+        }
+    }
+
+    public byte[] photoToByte(Bitmap photo) {
         ByteArrayOutputStream stream = new ByteArrayOutputStream();
         photo.compress(Bitmap.CompressFormat.PNG, 100, stream);
         return stream.toByteArray();

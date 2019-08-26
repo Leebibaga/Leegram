@@ -24,7 +24,8 @@ public class MainActivity extends AppCompatActivity implements NoDataFragment.On
     private SearchPhotosFragment searchPhotosFragment;
     private FavoritePhotosFragment favoritePhotosFragment;
     private FragmentManager fragmentManager;
-    private  CommunicateWithRealm communicateWithRealm;
+    private CommunicateWithRealm communicateWithRealm;
+    private ActionBar actionBar;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -36,6 +37,18 @@ public class MainActivity extends AppCompatActivity implements NoDataFragment.On
             favoritePhotosFragment = new FavoritePhotosFragment();
             noDataFragment = new NoDataFragment();
             fragmentManager = getSupportFragmentManager();
+            actionBar = getSupportActionBar();
+        }
+        if(communicateWithRealm.getPhotoItems().isEmpty()){
+            fragmentManager.beginTransaction()
+                    .add(R.id.main_activity_container, noDataFragment)
+                    .commit();
+            actionBar.hide();
+        }else{
+            fragmentManager.beginTransaction()
+                    .add(R.id.main_activity_container, favoritePhotosFragment)
+                    .commit();
+            actionBar.show();
         }
     }
 
@@ -43,6 +56,7 @@ public class MainActivity extends AppCompatActivity implements NoDataFragment.On
         fragmentManager.beginTransaction()
                 .replace(R.id.main_activity_container, searchPhotosFragment)
                 .commit();
+        actionBar.hide();
     }
 
     @Override
@@ -50,6 +64,7 @@ public class MainActivity extends AppCompatActivity implements NoDataFragment.On
         fragmentManager.beginTransaction()
                 .replace(R.id.main_activity_container, favoritePhotosFragment)
                 .commit();
+        actionBar.show();
     }
 
     @Override
@@ -57,6 +72,7 @@ public class MainActivity extends AppCompatActivity implements NoDataFragment.On
         fragmentManager.beginTransaction()
                 .replace(R.id.main_activity_container, noDataFragment)
                 .commit();
+        actionBar.hide();
     }
 
     @Override
@@ -64,23 +80,13 @@ public class MainActivity extends AppCompatActivity implements NoDataFragment.On
         fragmentManager.beginTransaction()
                 .replace(R.id.main_activity_container, searchPhotosFragment)
                 .commit();
+        actionBar.hide();
     }
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         MenuInflater menuInflater = getMenuInflater();
         menuInflater.inflate(R.menu.main_activity_action_bar, menu);
-        menu.findItem(R.id.action_save).setVisible(false);
-        if(communicateWithRealm.getPhotoItems().isEmpty()){
-            fragmentManager.beginTransaction()
-                    .add(R.id.main_activity_container, noDataFragment)
-                    .commit();
-            menu.findItem(R.id.action_edit).setVisible(false);
-        }else{
-            fragmentManager.beginTransaction()
-                    .add(R.id.main_activity_container, favoritePhotosFragment)
-                    .commit();
-        }
         return super.onCreateOptionsMenu(menu);
     }
 
@@ -89,9 +95,8 @@ public class MainActivity extends AppCompatActivity implements NoDataFragment.On
         int itemId = item.getItemId();
         if (itemId == R.id.action_edit) {
             Intent intent = new Intent(this, EditFavoriteListActivity.class);
-            startActivityForResult(intent, EDIT_REQUEST_CODE);
+            startActivity(intent);
         }
-
         return super.onOptionsItemSelected(item);
     }
 }
