@@ -127,6 +127,7 @@ public class SearchPhotosFragment extends Fragment implements PhotosDownloader.P
     @RequiresApi(api = Build.VERSION_CODES.O)
     public void setPhotoInRealm(List<String> selectedPhotos) {
         updatePositionInRealm(selectedPhotos.size());
+        long position = getMaxPosition();
         try (Realm realm = Realm.getDefaultInstance()) {
             for (String photoURL : selectedPhotos) {
                 final PhotoItem photoItem = new PhotoItem();
@@ -135,9 +136,25 @@ public class SearchPhotosFragment extends Fragment implements PhotosDownloader.P
                 int index = searchPhotosListAdapter.getPhotosURLs().indexOf(photoURL);
                 photoItem.setPicture(photoToByte(searchPhotosListAdapter.getPhotos().get(index)));
                 photoItem.setDate(DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm:ss").toString());
+                photoItem.setPosition((int) position);
                 realm.executeTransaction(realm1 -> realm1.insertOrUpdate(photoItem));
             }
         }
+    }
+
+    private long getMaxPosition() {
+        long maxPosition;
+        try (Realm realm = Realm.getDefaultInstance()) {
+            Number results = realm
+                    .where(PhotoItem.class)
+                    .max("position");
+            if (results == null){
+                maxPosition = 0;
+            }else {
+                maxPosition = (long) results;
+            }
+        }
+        return maxPosition;
     }
 
     private void updatePositionInRealm(int numberOfNewItems) {
@@ -147,7 +164,7 @@ public class SearchPhotosFragment extends Fragment implements PhotosDownloader.P
                     .where(PhotoItem.class)
                     .findAll();
             photoItems.addAll(realm.copyFromRealm(results));
-            for(PhotoItem photoItem: photoItems){
+            for (PhotoItem photoItem : photoItems) {
                 int oldPosition = photoItem.getPosition();
                 photoItem.setPosition(oldPosition + numberOfNewItems);
             }

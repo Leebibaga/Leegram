@@ -18,7 +18,6 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
 
-import com.example.leegram.others.CommunicateWithRealm;
 import com.example.leegram.R;
 import com.example.leegram.model.PhotoItem;
 import com.example.leegram.others.FavoriteItemTouchCallBack;
@@ -27,9 +26,9 @@ import com.example.leegram.others.OnStartDragListener;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Objects;
 
 import io.realm.Realm;
+import io.realm.RealmList;
 import io.realm.RealmResults;
 
 public class EditFavoriteListFragment extends Fragment implements OnStartDragListener {
@@ -39,9 +38,8 @@ public class EditFavoriteListFragment extends Fragment implements OnStartDragLis
     private View rootView;
 
     //data
-    private RealmResults<PhotoItem> photoItems;
+    private  List<PhotoItem> photoItems = new LinkedList<>();
     private List<String> photosURLs = new LinkedList<>();
-    private List<Integer> positions = new LinkedList<>();
     private ItemTouchHelper mItemTouchHelper;
 
     //adapter
@@ -83,10 +81,7 @@ public class EditFavoriteListFragment extends Fragment implements OnStartDragLis
         int size = photoItems.size();
         photosURLs.clear();
         for (int index = 0; index < size; index++) {
-            if (photoItems.get(index) != null) {
-                photosURLs.add(photoItems.get(index).getPictureURL());
-                positions.add(photoItems.get(index).getPosition());
-            }
+            photosURLs.add(photoItems.get(index).getPictureURL());
         }
     }
 
@@ -96,16 +91,19 @@ public class EditFavoriteListFragment extends Fragment implements OnStartDragLis
     }
 
     private void updateData() {
-        Realm realm = Realm.getDefaultInstance();
-        photoItems = realm
-                .where(PhotoItem.class)
-                .findAll();
+        try (Realm realm = Realm.getDefaultInstance()) {
+            RealmResults<PhotoItem> results = realm
+                    .where(PhotoItem.class)
+                    .sort("position")
+                    .findAll();
+            photoItems.addAll(realm.copyFromRealm(results));
+        }
         setPhotosData();
         editFavoriteListPhotosAdapter.setPhotos();
     }
 
     public void updateRealmWhenSaved() {
-        try(Realm realm = Realm.getDefaultInstance()) {
+        try (Realm realm = Realm.getDefaultInstance()) {
             realm.executeTransaction(realm1 -> realm1.insertOrUpdate(photoItems));
         }
     }
@@ -138,7 +136,7 @@ public class EditFavoriteListFragment extends Fragment implements OnStartDragLis
                     if (event.getActionMasked() == MotionEvent.ACTION_DOWN) {
                         mDragStartListener.onStartDrag(viewHolder);
                     }
-                    return false;
+                    return true;
                 });
             });
         }
@@ -170,38 +168,33 @@ public class EditFavoriteListFragment extends Fragment implements OnStartDragLis
 
         public void onItemDismiss(int position) {
             photos.remove(position);
-            photoItems.get(position).setPictureURL("removed");
-            updatePositionAfterRemove(position + 1);
+            photosURLs.remove(position);
+            updatePositionAfterRemove(position);
             notifyItemRemoved(position);
         }
 
         public void updatePositionAfterRemove(int position) {
             for (int index = position; index < photoItems.size(); index++) {
-                Objects.requireNonNull(photoItems.where().equalTo("position", index).findFirst()).setPosition(index);
+                int oldPosition = photoItems.get(index).getPosition();
+                photoItems.get(index).setPosition(oldPosition - 1);
             }
         }
 
         private void updateItemsPositions(int startPosition, int targetPosition) {
-            Objects.requireNonNull(photoItems.where().equalTo("position", startPosition).findFirst()).setPosition(-1);
-            if(targetPosition > startPosition) {
-                for (int index = startPosition + 1; index < targetPosition; index++) {
-                    Objects.requireNonNull(photoItems.where().equalTo("position", index).findFirst()).setPosition(index - 1);
-                }
-            }else {
-                for (int index = startPosition - 1; index > targetPosition; index--) {
-                    Objects.requireNonNull(photoItems.where().equalTo("position", index).findFirst()).setPosition(index + 1);
-                }
-            }
-            Objects.requireNonNull(photoItems.where().equalTo("position", -1).findFirst()).setPosition(targetPosition);
+            photoItems.get(startPosition).setPosition(targetPosition);
+            photoItems.get(targetPosition).setPosition(startPosition);
+            PhotoItem photoItem = photoItems.get(startPosition);
+            photoItems.set(startPosition, photoItems.get(targetPosition));
+            photoItems.set(targetPosition, photoItem);
         }
 
-            private class PictureHolder extends RecyclerView.ViewHolder {
-                ImageView photo;
+        private class PictureHolder extends RecyclerView.ViewHolder {
+            ImageView photo;
 
-                PictureHolder(@NonNull View itemView) {
-                    super(itemView);
-                    photo = itemView.findViewById(R.id.photo_item);
-                }
+            PictureHolder(@NonNull View itemView) {
+                super(itemView);
+                photo = itemView.findViewById(R.id.photo_item);
             }
         }
     }
+}

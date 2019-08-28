@@ -1,7 +1,6 @@
 package com.example.leegram.activities;
 
 import android.content.Intent;
-import android.support.v4.app.FragmentManager;
 import android.support.v7.app.ActionBar;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -23,7 +22,6 @@ public class MainActivity extends AppCompatActivity implements NoDataFragment.On
     private NoDataFragment noDataFragment;
     private SearchPhotosFragment searchPhotosFragment;
     private FavoritePhotosFragment favoritePhotosFragment;
-    private FragmentManager fragmentManager;
     private CommunicateWithRealm communicateWithRealm;
     private ActionBar actionBar;
 
@@ -36,16 +34,15 @@ public class MainActivity extends AppCompatActivity implements NoDataFragment.On
             searchPhotosFragment = new SearchPhotosFragment();
             favoritePhotosFragment = new FavoritePhotosFragment();
             noDataFragment = new NoDataFragment();
-            fragmentManager = getSupportFragmentManager();
             actionBar = getSupportActionBar();
         }
         if(communicateWithRealm.getPhotoItems().isEmpty()){
-            fragmentManager.beginTransaction()
+            getSupportFragmentManager().beginTransaction()
                     .add(R.id.main_activity_container, noDataFragment)
                     .commit();
             actionBar.hide();
         }else{
-            fragmentManager.beginTransaction()
+            getSupportFragmentManager().beginTransaction()
                     .add(R.id.main_activity_container, favoritePhotosFragment)
                     .commit();
             actionBar.show();
@@ -53,7 +50,7 @@ public class MainActivity extends AppCompatActivity implements NoDataFragment.On
     }
 
     public void onAddPhotoButtonClicked() {
-        fragmentManager.beginTransaction()
+        getSupportFragmentManager().beginTransaction()
                 .replace(R.id.main_activity_container, searchPhotosFragment)
                 .commit();
         actionBar.hide();
@@ -61,7 +58,7 @@ public class MainActivity extends AppCompatActivity implements NoDataFragment.On
 
     @Override
     public void onClickAddButton() {
-        fragmentManager.beginTransaction()
+        getSupportFragmentManager().beginTransaction()
                 .replace(R.id.main_activity_container, favoritePhotosFragment)
                 .commit();
         actionBar.show();
@@ -69,7 +66,7 @@ public class MainActivity extends AppCompatActivity implements NoDataFragment.On
 
     @Override
     public void onNoPictureListener() {
-        fragmentManager.beginTransaction()
+        getSupportFragmentManager().beginTransaction()
                 .replace(R.id.main_activity_container, noDataFragment)
                 .commit();
         actionBar.hide();
@@ -77,7 +74,7 @@ public class MainActivity extends AppCompatActivity implements NoDataFragment.On
 
     @Override
     public void onAddButtonListener() {
-        fragmentManager.beginTransaction()
+        getSupportFragmentManager().beginTransaction()
                 .replace(R.id.main_activity_container, searchPhotosFragment)
                 .commit();
         actionBar.hide();

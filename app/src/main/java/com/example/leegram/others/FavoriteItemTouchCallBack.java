@@ -18,7 +18,8 @@ public class FavoriteItemTouchCallBack extends ItemTouchHelper.Callback {
     @Override
     public int getMovementFlags(@NonNull RecyclerView recyclerView, @NonNull RecyclerView.ViewHolder viewHolder) {
         int dragFlags = ItemTouchHelper.UP | ItemTouchHelper.DOWN | ItemTouchHelper.LEFT | ItemTouchHelper.RIGHT;
-        return makeMovementFlags(0, dragFlags);
+        int swipeFlag = ItemTouchHelper.END | ItemTouchHelper.START;
+        return makeMovementFlags(dragFlags, swipeFlag);
     }
 
     @Override

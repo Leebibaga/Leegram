@@ -30,7 +30,6 @@ import java.util.List;
 import java.util.Objects;
 import io.realm.Realm;
 import io.realm.RealmResults;
-import io.realm.Sort;
 
 public class FavoritePhotosFragment extends Fragment {
 
@@ -91,9 +90,10 @@ public class FavoritePhotosFragment extends Fragment {
 
     private List<Bitmap> convertBitmap() {
         List<Bitmap> downloadedPhotos = new LinkedList<>();
-        for (PhotoItem photoItem : photoItems) {
+        int size = photoItems.size();
+        for (int index = 0; index < size; index++) {
             downloadedPhotos.add(BitmapFactory.decodeByteArray
-                    (photoItem.getPicture(), 0, photoItem.getPicture().length));
+                    (photoItems.get(index).getPicture(), 0, (photoItems.get(index).getPicture().length)));
         }
         return downloadedPhotos;
     }
@@ -110,15 +110,16 @@ public class FavoritePhotosFragment extends Fragment {
         Realm realm = Realm.getDefaultInstance();
         photoItems = realm
                 .where(PhotoItem.class)
+                .sort("position")
                 .findAll();
         setPhotosURLs();
         favoritePhotosAdapter.setPhotos();
-        photoItems.addChangeListener((photoItems, changeSet) -> {
+        photoItems.addChangeListener((photoItems1, changeSet) -> {
             photoItems.sort("position");
             setPhotosURLs();
             favoritePhotosAdapter.setPhotos();
-            favoritePhotosAdapter.notifyDataSetChanged();
         });
+
     }
 
     public class FavoritePhotosAdapter extends RecyclerView.Adapter<FavoritePhotosAdapter.PhotoHolder> {
