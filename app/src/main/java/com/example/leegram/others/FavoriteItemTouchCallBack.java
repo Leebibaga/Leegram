@@ -18,7 +18,7 @@ public class FavoriteItemTouchCallBack extends ItemTouchHelper.Callback {
     @Override
     public int getMovementFlags(@NonNull RecyclerView recyclerView, @NonNull RecyclerView.ViewHolder viewHolder) {
         int dragFlags = ItemTouchHelper.UP | ItemTouchHelper.DOWN | ItemTouchHelper.LEFT | ItemTouchHelper.RIGHT;
-        int swipeFlag = ItemTouchHelper.END | ItemTouchHelper.START;
+        int swipeFlag = 0;
         return makeMovementFlags(dragFlags, swipeFlag);
     }
 
@@ -30,7 +30,7 @@ public class FavoriteItemTouchCallBack extends ItemTouchHelper.Callback {
 
     @Override
     public void onSwiped(@NonNull RecyclerView.ViewHolder viewHolder, int i) {
-        editFavoriteListPhotosAdapter.onItemDismiss(viewHolder.getAdapterPosition());
+
     }
 }
 

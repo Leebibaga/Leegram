@@ -1,7 +1,6 @@
 package com.example.leegram.fragments;
 
 import android.annotation.SuppressLint;
-import android.app.ActivityOptions;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
@@ -10,8 +9,6 @@ import android.os.Build;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.annotation.RequiresApi;
-import android.support.design.widget.FloatingActionButton;
-import android.support.v4.app.ActivityOptionsCompat;
 import android.support.v4.app.Fragment;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
@@ -20,32 +17,27 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
+import android.widget.TextView;
+
 import com.example.leegram.R;
+import com.example.leegram.activities.EditFavoriteListActivity;
 import com.example.leegram.activities.ImageScreenActivity;
 import com.example.leegram.model.PhotoItem;
 import com.facebook.shimmer.ShimmerFrameLayout;
 
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Objects;
 import io.realm.Realm;
 import io.realm.RealmResults;
 
 public class FavoritePhotosFragment extends Fragment {
-
-    public interface OnButtonsListener {
-        void onNoPictureListener();
-        void onAddButtonListener();
-    }
-
     //view
-    private RecyclerView favoritePhotos;
-    private FloatingActionButton addPhoto;
     private View rootView;
+    private RecyclerView favoritePhotos;
+    private TextView noDataText;
 
     //data
     private RealmResults<PhotoItem> photoItems;
-    private OnButtonsListener onButtonsListener;
     private ShimmerFrameLayout skeletonLayout;
     private List<String> photosURLs = new LinkedList<>();
 
@@ -55,7 +47,6 @@ public class FavoritePhotosFragment extends Fragment {
     @Override
     public void onAttach(Context context) {
         super.onAttach(context);
-        onButtonsListener = (OnButtonsListener) context;
     }
 
     @Override
@@ -68,16 +59,15 @@ public class FavoritePhotosFragment extends Fragment {
                     new StaggeredGridLayoutManager(2, LinearLayoutManager.VERTICAL);
             favoritePhotos.setLayoutManager(staggeredGridLayoutManager);
             favoritePhotos.setAdapter(favoritePhotosAdapter);
-            addPhoto.setOnClickListener(v -> {
-                if (photoItems.isEmpty()) {
-                    onButtonsListener.onNoPictureListener();
-                } else {
-                    onButtonsListener.onAddButtonListener();
-                }
-            });
-            updateData();
         }
-
+        updateData();
+        if(photoItems.isEmpty()){
+            noDataText.setVisibility(View.VISIBLE);
+            favoritePhotos.setVisibility(View.GONE);
+        }else{
+            noDataText.setVisibility(View.GONE);
+            favoritePhotos.setVisibility(View.VISIBLE);
+        }
         skeletonLayout.setVisibility(View.GONE);
         return rootView;
     }
@@ -85,7 +75,7 @@ public class FavoritePhotosFragment extends Fragment {
     private void findViews() {
         favoritePhotos = rootView.findViewById(R.id.favorite_photos);
         skeletonLayout = rootView.findViewById(R.id.parentShimmerLayout);
-        addPhoto = rootView.findViewById(R.id.fab);
+        noDataText = rootView.findViewById(R.id.add_photos_text);
     }
 
     private List<Bitmap> convertBitmap() {
@@ -146,12 +136,14 @@ public class FavoritePhotosFragment extends Fragment {
             viewHolder.photo.setOnClickListener(view -> {
                 Intent intent = new Intent(getActivity(), ImageScreenActivity.class);
                 intent.putExtra("image", photosURLs.get(position));
-                ActivityOptionsCompat options = ActivityOptionsCompat.
-                        makeSceneTransitionAnimation(Objects.requireNonNull(getActivity()),
-                                viewHolder.photo,
-                                getString(R.string.image_transition));
-                startActivity(intent, options.toBundle());
-                getActivity().overridePendingTransition(R.anim.enter_animation, R.anim.exit_animation);
+                startActivity(intent);
+            });
+
+            viewHolder.photo.setOnLongClickListener(view -> {
+                Intent intent = new Intent(getActivity(), EditFavoriteListActivity.class);
+                intent.putExtra("image", photosURLs.get(position));
+                startActivity(intent);
+                return true;
             });
 
         }

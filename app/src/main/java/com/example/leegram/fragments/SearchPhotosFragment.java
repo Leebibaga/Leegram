@@ -23,12 +23,15 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
 
+import com.example.leegram.others.FavoriteItemTouchCallBack;
 import com.example.leegram.others.PhotosDownloader;
 import com.example.leegram.R;
 import com.example.leegram.model.PhotoItem;
 
 import java.io.ByteArrayOutputStream;
+import java.text.DateFormat;
 import java.time.format.DateTimeFormatter;
+import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
@@ -38,21 +41,18 @@ import io.realm.RealmResults;
 
 public class SearchPhotosFragment extends Fragment implements PhotosDownloader.PhotoDownloadCallback {
 
-    public interface OnClickAddButtonListener {
-        void onClickAddButton();
+    public interface OnClickItemListener {
+        void onClickItem();
+        void noItemSelected();
     }
 
     // view
     private View rootView;
     private RecyclerView listOfPhotos;
-    private Button addToFavorites;
-    private EditText searchPhotoBar;
     private View skeletonLayout;
 
     // data
-    private Runnable delayCounter;
-    private Handler handleSpinner = new Handler();
-    private OnClickAddButtonListener mClickListener;
+    private OnClickItemListener mClickListener;
 
     // adapters
     private SearchPhotosListAdapter searchPhotosListAdapter;
@@ -62,14 +62,10 @@ public class SearchPhotosFragment extends Fragment implements PhotosDownloader.P
                              Bundle savedInstanceState) {
         if (rootView == null) {
             rootView = inflater.inflate(R.layout.fragment_search_photos, container, false);
-            searchPhotoBar = rootView.findViewById(R.id.search_photos_bar);
             listOfPhotos = rootView.findViewById(R.id.photos_list);
-            addToFavorites = rootView.findViewById(R.id.add_to_favorites);
             skeletonLayout = rootView.findViewById(R.id.parentShimmerLayout);
         }
-
         initUI();
-
         return rootView;
     }
 
@@ -80,52 +76,15 @@ public class SearchPhotosFragment extends Fragment implements PhotosDownloader.P
                 new StaggeredGridLayoutManager(2, LinearLayoutManager.VERTICAL);
         listOfPhotos.setLayoutManager(staggeredGridLayoutManager);
         listOfPhotos.setAdapter(searchPhotosListAdapter);
-        addToFavorites.setOnClickListener(v -> {
-            setPhotoInRealm(searchPhotosListAdapter.getSelectedPhotos());
-            addToFavorites.setVisibility(View.GONE);
-            searchPhotoBar.getText().clear();
-            mClickListener.onClickAddButton();
-        });
-        showSoftKeyboard(searchPhotoBar);
-        searchPhotoBar.addTextChangedListener(new TextWatcher() {
-            String textBeforeChanged;
-
-            @Override
-            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
-                textBeforeChanged = searchPhotoBar.getText().toString();
-            }
-
-            @Override
-            public void onTextChanged(CharSequence s, int start, int before, int count) {
-                if (delayCounter == null) {
-                    delayCounter = () -> {
-                        if (!searchPhotoBar.getText().toString().isEmpty()) {
-                            skeletonLayout.setVisibility(View.VISIBLE);
-                            new PhotosDownloader(SearchPhotosFragment.this, searchPhotoBar.getText().toString());
-                        }
-                    };
-                }
-                handleSpinner.removeCallbacks(delayCounter);
-                handleSpinner.postDelayed(delayCounter, 600);
-            }
-
-            @Override
-            public void afterTextChanged(Editable s) {
-
-            }
-        });
     }
 
-    public void showSoftKeyboard(View view) {
-        if (view.requestFocus()) {
-            InputMethodManager imm = (InputMethodManager)
-                    Objects.requireNonNull(getContext()).getSystemService(Context.INPUT_METHOD_SERVICE);
-            imm.toggleSoftInput(InputMethodManager.SHOW_FORCED, 0);
-        }
+    public void downloadPhotos(String text){
+        skeletonLayout.setVisibility(View.VISIBLE);
+        new PhotosDownloader(this, text);
     }
 
-    @RequiresApi(api = Build.VERSION_CODES.O)
-    public void setPhotoInRealm(List<String> selectedPhotos) {
+    public void savePhotosToRealm() {
+        List<String> selectedPhotos = searchPhotosListAdapter.getSelectedPhotos();
         updatePositionInRealm(selectedPhotos.size());
         long position = getMaxPosition();
         try (Realm realm = Realm.getDefaultInstance()) {
@@ -135,7 +94,8 @@ public class SearchPhotosFragment extends Fragment implements PhotosDownloader.P
                 photoItem.setApi("unsplashed");
                 int index = searchPhotosListAdapter.getPhotosURLs().indexOf(photoURL);
                 photoItem.setPicture(photoToByte(searchPhotosListAdapter.getPhotos().get(index)));
-                photoItem.setDate(DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm:ss").toString());
+                DateFormat dateFormat = android.text.format.DateFormat.getDateFormat(getActivity().getApplicationContext());
+                photoItem.setDate(dateFormat.format(new Date(System.currentTimeMillis())));
                 photoItem.setPosition((int) position);
                 realm.executeTransaction(realm1 -> realm1.insertOrUpdate(photoItem));
             }
@@ -181,7 +141,7 @@ public class SearchPhotosFragment extends Fragment implements PhotosDownloader.P
     @Override
     public void onAttach(Context context) {
         super.onAttach(context);
-        mClickListener = (OnClickAddButtonListener) context;
+        mClickListener = (OnClickItemListener) context;
     }
 
     @Override
@@ -229,17 +189,11 @@ public class SearchPhotosFragment extends Fragment implements PhotosDownloader.P
                 }
 
                 if (selected.size() > 0) {
-                    addToFavorites.setVisibility(View.VISIBLE);
+                    mClickListener.onClickItem();
                 } else {
-                    addToFavorites.setVisibility(View.GONE);
+                    mClickListener.noItemSelected();
                 }
             });
-
-            if (selected.contains(itemTouched)) {
-                highlightView(pictureHolder);
-            } else {
-                unhighlightView(pictureHolder);
-            }
         }
 
         @RequiresApi(api = Build.VERSION_CODES.KITKAT)

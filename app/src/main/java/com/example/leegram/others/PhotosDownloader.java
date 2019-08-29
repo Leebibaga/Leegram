@@ -41,10 +41,6 @@ public class PhotosDownloader extends AsyncTask<String, Bitmap, List<Bitmap>> {
         getListOfPhotoURLs(query);
     }
 
-    public PhotosDownloader(PhotoDownloadCallback callback) {
-        finishDownloadingPhotos = callback;
-    }
-
     @Override
     protected void onPreExecute() {
     }
