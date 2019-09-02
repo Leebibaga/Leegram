@@ -23,9 +23,11 @@ import retrofit2.Response;
 public class PhotosDownloader extends AsyncTask<String, Bitmap, List<Bitmap>> {
 
     private String TOKEN = "210590bd55fa23badf70b162392aa62e3bc62b7029e01eb0f9db858abc0c7cc6";
+    Call<UnsplashedPhotos> getResults;
 
     public interface PhotoDownloadCallback {
         void setImages(List<Bitmap> downloadedPhotos);
+
         void setURLs(List<String> urls);
 
     }
@@ -36,9 +38,8 @@ public class PhotosDownloader extends AsyncTask<String, Bitmap, List<Bitmap>> {
     private int pageNumber = 1;
 
 
-    public PhotosDownloader(PhotoDownloadCallback callback, String query) {
+    public PhotosDownloader(PhotoDownloadCallback callback) {
         this.finishDownloadingPhotos = callback;
-        getListOfPhotoURLs(query);
     }
 
     @Override
@@ -49,12 +50,16 @@ public class PhotosDownloader extends AsyncTask<String, Bitmap, List<Bitmap>> {
     protected List<Bitmap> doInBackground(String... strings) {
         for (String photoUrl : strings) {
             downloadedPhotos.add(downloadPhoto(photoUrl));
+            if (isCancelled()) {
+                break;
+            }
         }
         return downloadedPhotos;
     }
 
     @Override
     protected void onProgressUpdate(Bitmap... values) {
+
     }
 
     @Override
@@ -65,9 +70,9 @@ public class PhotosDownloader extends AsyncTask<String, Bitmap, List<Bitmap>> {
         photosUrls = null;
     }
 
-    private void getListOfPhotoURLs(String query) {
+    public void start(String query) {
         SplashedApi apiService = new ApiClient().getClient().create(SplashedApi.class);
-        Call<UnsplashedPhotos> getResults = apiService.getPhotos( TOKEN, query, pageNumber, 20);
+        getResults = apiService.getPhotos(TOKEN, query, pageNumber, 20);
         getResults.enqueue(new Callback<UnsplashedPhotos>() {
             @Override
             public void onResponse(@NonNull Call<UnsplashedPhotos> call, @NonNull Response<UnsplashedPhotos> response) {
@@ -83,9 +88,16 @@ public class PhotosDownloader extends AsyncTask<String, Bitmap, List<Bitmap>> {
 
             @Override
             public void onFailure(Call<UnsplashedPhotos> call, Throwable t) {
-
+                if (getResults.isCanceled()) {
+                    photosUrls.clear();
+                }
             }
         });
+    }
+
+    public void stop() {
+        getResults.cancel();
+        cancel(true);
     }
 
     private Bitmap downloadPhoto(String url) {
