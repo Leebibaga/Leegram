@@ -27,13 +27,11 @@ public class PhotosDownloader extends AsyncTask<String, Bitmap, List<Bitmap>> {
 
     public interface PhotoDownloadCallback {
         void setImages(List<Bitmap> downloadedPhotos);
-
-        void setURLs(List<String> urls);
-
+        void setIDs(List<String> ids);
     }
 
     private LinkedList<Bitmap> downloadedPhotos = new LinkedList<>();
-    private LinkedList<String> photosUrls = new LinkedList<>();
+    private LinkedList<String> photosID = new LinkedList<>();
     private PhotoDownloadCallback finishDownloadingPhotos;
     private int pageNumber = 1;
 
@@ -65,9 +63,9 @@ public class PhotosDownloader extends AsyncTask<String, Bitmap, List<Bitmap>> {
     @Override
     protected void onPostExecute(List<Bitmap> bitmap) {
         finishDownloadingPhotos.setImages(bitmap);
-        finishDownloadingPhotos.setURLs(photosUrls);
+        finishDownloadingPhotos.setIDs(photosID);
         finishDownloadingPhotos = null;
-        photosUrls = null;
+        photosID = null;
     }
 
     public void start(String query) {
@@ -76,12 +74,14 @@ public class PhotosDownloader extends AsyncTask<String, Bitmap, List<Bitmap>> {
         getResults.enqueue(new Callback<UnsplashedPhotos>() {
             @Override
             public void onResponse(@NonNull Call<UnsplashedPhotos> call, @NonNull Response<UnsplashedPhotos> response) {
+                List<String> photoURL = new LinkedList<>();
                 List<Photo> photos = response.body().getResults();
                 if (photos != null && !photos.isEmpty()) {
                     for (Photo photo : photos) {
-                        photosUrls.add(photo.getURLs().getRegular());
+                        photoURL.add(photo.getURLs().getRegular());
+                        photosID.add(photo.getId());
                     }
-                    execute(photosUrls.toArray(new String[photos.size()]));
+                    execute(photoURL.toArray(new String[photos.size()]));
                     pageNumber++;
                 }
             }
@@ -89,7 +89,7 @@ public class PhotosDownloader extends AsyncTask<String, Bitmap, List<Bitmap>> {
             @Override
             public void onFailure(Call<UnsplashedPhotos> call, Throwable t) {
                 if (getResults.isCanceled()) {
-                    photosUrls.clear();
+                    photosID.clear();
                 }
             }
         });

@@ -14,7 +14,7 @@ import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.StaggeredGridLayoutManager;
 import android.support.v7.widget.helper.ItemTouchHelper;
-import android.view.KeyEvent;
+import android.text.method.KeyListener;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
@@ -22,8 +22,10 @@ import android.view.ViewGroup;
 import android.widget.ImageView;
 
 import com.example.leegram.R;
+import com.example.leegram.activities.MainActivity;
 import com.example.leegram.model.PhotoItem;
 import com.example.leegram.others.FavoriteItemTouchCallBack;
+import com.example.leegram.others.OnItemClickedListener;
 import com.example.leegram.others.OnStartDragListener;
 
 import java.util.Collections;
@@ -37,12 +39,6 @@ import io.realm.RealmResults;
 
 public class EditFavoriteListFragment extends Fragment implements OnStartDragListener {
 
-    public interface OnClickEditItemListener {
-        void onClickItem();
-        void noItemSelected();
-        void onSwipeAction();
-    }
-
     //view
     private RecyclerView favoritePhotos;
     private View rootView;
@@ -50,14 +46,20 @@ public class EditFavoriteListFragment extends Fragment implements OnStartDragLis
     //data
     private List<PhotoItem> photoItems = new LinkedList<>();
     private RealmList<PhotoItem> deletedPhotoItems = new RealmList<>();
-    private List<String> photosURLs = new LinkedList<>();
+    private List<String> photosDir = new LinkedList<>();
     private ItemTouchHelper mItemTouchHelper;
-    private OnClickEditItemListener mClickEditItemListener;
-    private boolean clearChangesIsShown = false;
+    private OnItemClickedListener mClickListener;
+    private String photoToHighlight;
 
     //adapter
     private EditFavoriteListPhotosAdapter editFavoriteListPhotosAdapter;
 
+
+    @Override
+    public void onAttach(Context context) {
+        super.onAttach(context);
+        mClickListener = (OnItemClickedListener) context;
+    }
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
@@ -73,34 +75,9 @@ public class EditFavoriteListFragment extends Fragment implements OnStartDragLis
             mItemTouchHelper = new ItemTouchHelper(callback);
             mItemTouchHelper.attachToRecyclerView(favoritePhotos);
         }
+        editFavoriteListPhotosAdapter.getSelected().add(photoToHighlight);
         updateData();
         return rootView;
-    }
-
-    private void findViews() {
-        favoritePhotos = rootView.findViewById(R.id.edit_favorite_photos);
-    }
-
-    private List<Bitmap> convertBitmap() {
-        List<Bitmap> downloadedPhotos = new LinkedList<>();
-        for (PhotoItem photoItem : photoItems) {
-            downloadedPhotos.add(BitmapFactory.decodeByteArray
-                    (photoItem.getPicture(), 0, photoItem.getPicture().length));
-        }
-        return downloadedPhotos;
-    }
-
-    private void setPhotosData() {
-        int size = photoItems.size();
-        photosURLs.clear();
-        for (int index = 0; index < size; index++) {
-            photosURLs.add(photoItems.get(index).getPictureURL());
-        }
-    }
-
-    @Override
-    public void onStartDrag(RecyclerView.ViewHolder viewHolder) {
-        mItemTouchHelper.startDrag(viewHolder);
     }
 
     private void updateData() {
@@ -115,11 +92,39 @@ public class EditFavoriteListFragment extends Fragment implements OnStartDragLis
         editFavoriteListPhotosAdapter.setPhotos();
     }
 
+    private void setPhotosData() {
+        int size = photoItems.size();
+        photosDir.clear();
+        for (int index = 0; index < size; index++) {
+            photosDir.add(photoItems.get(index).getPicture());
+        }
+    }
+
+    private List<Bitmap> getPhotosFromPhone() {
+        List<Bitmap> downloadedPhotos = new LinkedList<>();
+        int size = photoItems.size();
+        for (int index = 0; index < size; index++) {
+            String pathToPicture = photoItems.get(index).getPicture();
+            downloadedPhotos.add(BitmapFactory.decodeFile(pathToPicture));
+        }
+        return downloadedPhotos;
+    }
+
+    private void findViews() {
+        favoritePhotos = rootView.findViewById(R.id.edit_favorite_photos);
+    }
+
+    @Override
+    public void onStartDrag(RecyclerView.ViewHolder viewHolder) {
+        mItemTouchHelper.startDrag(viewHolder);
+    }
+
+
     public void deleteSelectedItems() {
         List<String> selectedPhotos = editFavoriteListPhotosAdapter.getSelected();
         for (int index = 0; index < selectedPhotos.size(); index++) {
-            int position = photosURLs.indexOf(selectedPhotos.get(index));
-            photosURLs.remove(selectedPhotos.get(index));
+            int position = photosDir.indexOf(selectedPhotos.get(index));
+            photosDir.remove(selectedPhotos.get(index));
             PhotoItem photoItemToDelete = photoItems.get(position);
             updatePositionAfterRemove(position + 1);
             photoItems.remove(photoItemToDelete);
@@ -144,17 +149,11 @@ public class EditFavoriteListFragment extends Fragment implements OnStartDragLis
                 realm.executeTransaction(realm1 -> {
                     RealmResults<PhotoItem> results = realm1
                             .where(PhotoItem.class)
-                            .equalTo("pictureURL", deletedPhotoItem.getPictureURL())
+                            .equalTo("picture", deletedPhotoItem.getPictureURL())
                             .findAll();
                     results.deleteAllFromRealm();
                 });
             }
-        }
-    }
-
-    public void updateRealmWhenSaved() {
-        try (Realm realm = Realm.getDefaultInstance()) {
-            realm.executeTransaction(realm1 -> realm1.insertOrUpdate(photoItems));
         }
     }
 
@@ -163,14 +162,16 @@ public class EditFavoriteListFragment extends Fragment implements OnStartDragLis
         updateData();
     }
 
-    public void setClearChangesButtonGone(){
-        clearChangesIsShown = false;
+    public void setItemClicked(String photoClicked){
+        photoToHighlight = photoClicked;
     }
 
     @Override
-    public void onAttach(Context context) {
-        super.onAttach(context);
-        mClickEditItemListener = (OnClickEditItemListener) context;
+    public void onDestroy() {
+        super.onDestroy();
+        try(Realm realm = Realm.getDefaultInstance()){
+            realm.executeTransaction(realm1 -> realm.copyToRealmOrUpdate(photoItems));
+        }
     }
 
     public class EditFavoriteListPhotosAdapter extends RecyclerView.Adapter<EditFavoriteListPhotosAdapter.PictureHolder> {
@@ -198,14 +199,19 @@ public class EditFavoriteListFragment extends Fragment implements OnStartDragLis
         @RequiresApi(api = Build.VERSION_CODES.KITKAT)
         @Override
         public void onBindViewHolder(@NonNull final PictureHolder viewHolder, int position) {
-            final String itemTouched = photosURLs.get(position);
+            final String itemTouched = photosDir.get(position);
             viewHolder.photo.setImageBitmap(photos.get(position));
-            String SelectedPhoto = Objects.requireNonNull(getActivity()).getIntent().getStringExtra("image");
-            if(itemTouched.equals(SelectedPhoto)){
+            if (selected.contains(itemTouched)) {
                 highlightView(viewHolder);
-                selected.add(SelectedPhoto);
-                deletedPhotoItems.add(photoItems.get(position));
+            } else {
+                unhighlightView(viewHolder);
             }
+            if (selected.size() > 0) {
+                mClickListener.setActionBarMode(MainActivity.ActionBarMode.EDIT_ITEM_CLICKED);
+            } else {
+                mClickListener.setActionBarMode(MainActivity.ActionBarMode.EDIT);
+            }
+            getActivity().invalidateOptionsMenu();
             viewHolder.photo.setOnClickListener(V -> {
                 viewHolder.photo.setOnTouchListener((v, event) -> {
                     if (event.getActionMasked() == MotionEvent.ACTION_DOWN) {
@@ -227,17 +233,18 @@ public class EditFavoriteListFragment extends Fragment implements OnStartDragLis
                 }
 
                 if (selected.size() > 0) {
-                    mClickEditItemListener.onClickItem();
+                    mClickListener.setActionBarMode(MainActivity.ActionBarMode.EDIT_ITEM_CLICKED);
                 } else {
-                    mClickEditItemListener.noItemSelected();
+                    mClickListener.setActionBarMode(MainActivity.ActionBarMode.EDIT);
                 }
+                getActivity().invalidateOptionsMenu();
             });
         }
 
 
         @RequiresApi(api = Build.VERSION_CODES.KITKAT)
         private void highlightView(EditFavoriteListPhotosAdapter.PictureHolder holder) {
-            holder.photo.setBackgroundColor(ContextCompat.getColor(Objects.requireNonNull(getContext()), R.color.colorAccent));
+            holder.photo.setBackgroundColor(ContextCompat.getColor(Objects.requireNonNull(getContext()), R.color.colorPrimaryDark));
             holder.photo.setPadding(10, 10, 10, 10);
         }
 
@@ -254,7 +261,7 @@ public class EditFavoriteListFragment extends Fragment implements OnStartDragLis
 
         void setPhotos() {
             photos.clear();
-            photos.addAll(convertBitmap());
+            photos.addAll(getPhotosFromPhone());
             notifyDataSetChanged();
         }
 
@@ -267,10 +274,6 @@ public class EditFavoriteListFragment extends Fragment implements OnStartDragLis
                 for (int i = fromPosition; i > toPosition; i--) {
                     Collections.swap(photos, i, i - 1);
                 }
-            }
-            if(!clearChangesIsShown) {
-                clearChangesIsShown = true;
-                mClickEditItemListener.onSwipeAction();
             }
             updateItemsPositions(fromPosition, toPosition);
             notifyItemMoved(fromPosition, toPosition);

@@ -22,8 +22,6 @@
             </intent-filter>
         </activity>
 
-        <activity android:name=".activities.ImageScreenActivity"  android:theme="@style/Theme.Transparent"/>
-        <activity android:name=".activities.EditFavoriteListActivity"/>
     </application>
 
 </manifest>

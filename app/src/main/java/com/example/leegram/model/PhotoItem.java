@@ -12,7 +12,7 @@ public class PhotoItem extends RealmObject {
     private String date;
     private String api;
     private String category;
-    private byte[] picture;
+    private String picture;
     @Index
     private int position;
 
@@ -24,7 +24,7 @@ public class PhotoItem extends RealmObject {
         return date;
     }
 
-    public byte[] getPicture() {
+    public String getPicture() {
         return picture;
     }
 
@@ -52,7 +52,7 @@ public class PhotoItem extends RealmObject {
         this.pictureURL = pictureURL;
     }
 
-    public void setPicture(byte[] picture) {
+    public void setPicture(String picture) {
         this.picture = picture;
     }
 

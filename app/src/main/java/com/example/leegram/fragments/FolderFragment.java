@@ -2,7 +2,6 @@ package com.example.leegram.fragments;
 
 import android.annotation.SuppressLint;
 import android.content.Context;
-import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.os.Build;
@@ -20,26 +19,37 @@ import android.widget.ImageView;
 import android.widget.TextView;
 
 import com.example.leegram.R;
-import com.example.leegram.activities.EditFavoriteListActivity;
-import com.example.leegram.activities.ImageScreenActivity;
+import com.example.leegram.activities.MainActivity;
 import com.example.leegram.model.PhotoItem;
+import com.example.leegram.others.OnItemClickedListener;
 import com.facebook.shimmer.ShimmerFrameLayout;
 
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Objects;
+
 import io.realm.Realm;
 import io.realm.RealmResults;
 
-public class FavoritePhotosFragment extends Fragment {
+public class FolderFragment extends Fragment {
+
+    public interface OnLongClickPhotoListener {
+        void onPhotoClicked(String itemClicked);
+    }
+
+
     //view
     private View rootView;
     private RecyclerView favoritePhotos;
     private TextView noDataText;
+    private ImageView enlargedPhoto;
 
     //data
     private RealmResults<PhotoItem> photoItems;
     private ShimmerFrameLayout skeletonLayout;
-    private List<String> photosURLs = new LinkedList<>();
+    private List<String> photoDir = new LinkedList<>();
+    private OnLongClickPhotoListener mOnClickPhoto;
+    private OnItemClickedListener mOnItemClickedListener;
 
     //adapter
     private FavoritePhotosAdapter favoritePhotosAdapter;
@@ -47,12 +57,14 @@ public class FavoritePhotosFragment extends Fragment {
     @Override
     public void onAttach(Context context) {
         super.onAttach(context);
+        mOnClickPhoto = (OnLongClickPhotoListener) context;
+        mOnItemClickedListener = (OnItemClickedListener) context;
     }
 
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         if (rootView == null) {
-            rootView = inflater.inflate(R.layout.fragment_favorite_photos, container, false);
+            rootView = inflater.inflate(R.layout.fragment_folder, container, false);
             findViews();
             favoritePhotosAdapter = new FavoritePhotosAdapter();
             StaggeredGridLayoutManager staggeredGridLayoutManager =
@@ -60,39 +72,50 @@ public class FavoritePhotosFragment extends Fragment {
             favoritePhotos.setLayoutManager(staggeredGridLayoutManager);
             favoritePhotos.setAdapter(favoritePhotosAdapter);
         }
+        enlargedPhoto.setOnClickListener(v -> {
+            enlargedPhoto.setVisibility(View.GONE);
+            favoritePhotos.setVisibility(View.VISIBLE);
+        });
+        return rootView;
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
         updateData();
-        if(photoItems.isEmpty()){
+        if (photoItems.isEmpty()) {
             noDataText.setVisibility(View.VISIBLE);
             favoritePhotos.setVisibility(View.GONE);
-        }else{
+        } else {
             noDataText.setVisibility(View.GONE);
             favoritePhotos.setVisibility(View.VISIBLE);
         }
-        skeletonLayout.setVisibility(View.GONE);
-        return rootView;
+        mOnItemClickedListener.setActionBarMode(MainActivity.ActionBarMode.MAIN_SCREEN);
+        Objects.requireNonNull(getActivity()).invalidateOptionsMenu();
     }
 
     private void findViews() {
         favoritePhotos = rootView.findViewById(R.id.favorite_photos);
         skeletonLayout = rootView.findViewById(R.id.parentShimmerLayout);
         noDataText = rootView.findViewById(R.id.add_photos_text);
+        enlargedPhoto = rootView.findViewById(R.id.enlarged_photo);
     }
 
-    private List<Bitmap> convertBitmap() {
+    private List<Bitmap> getPhotosFromPhone() {
         List<Bitmap> downloadedPhotos = new LinkedList<>();
         int size = photoItems.size();
         for (int index = 0; index < size; index++) {
-            downloadedPhotos.add(BitmapFactory.decodeByteArray
-                    (photoItems.get(index).getPicture(), 0, (photoItems.get(index).getPicture().length)));
+            String pathToPicture = photoItems.get(index).getPicture();
+            downloadedPhotos.add(BitmapFactory.decodeFile(pathToPicture));
         }
         return downloadedPhotos;
     }
 
     private void setPhotosURLs() {
         int size = photoItems.size();
-        photosURLs.clear();
+        photoDir.clear();
         for (int index = 0; index < size; index++) {
-            photosURLs.add(photoItems.get(index).getPictureURL());
+            photoDir.add(photoItems.get(index).getPicture());
         }
     }
 
@@ -109,7 +132,6 @@ public class FavoritePhotosFragment extends Fragment {
             setPhotosURLs();
             favoritePhotosAdapter.setPhotos();
         });
-
     }
 
     public class FavoritePhotosAdapter extends RecyclerView.Adapter<FavoritePhotosAdapter.PhotoHolder> {
@@ -134,15 +156,12 @@ public class FavoritePhotosFragment extends Fragment {
         public void onBindViewHolder(@NonNull final PhotoHolder viewHolder, int position) {
             viewHolder.photo.setImageBitmap(photos.get(position));
             viewHolder.photo.setOnClickListener(view -> {
-                Intent intent = new Intent(getActivity(), ImageScreenActivity.class);
-                intent.putExtra("image", photosURLs.get(position));
-                startActivity(intent);
+                enlargedPhoto.setImageBitmap(photos.get(position));
+                enlargedPhoto.setVisibility(View.VISIBLE);
+                favoritePhotos.setVisibility(View.GONE);
             });
-
             viewHolder.photo.setOnLongClickListener(view -> {
-                Intent intent = new Intent(getActivity(), EditFavoriteListActivity.class);
-                intent.putExtra("image", photosURLs.get(position));
-                startActivity(intent);
+                mOnClickPhoto.onPhotoClicked(photoDir.get(position));
                 return true;
             });
 
@@ -155,11 +174,11 @@ public class FavoritePhotosFragment extends Fragment {
 
         void setPhotos() {
             this.photos.clear();
-            this.photos.addAll(convertBitmap());
+            this.photos.addAll(getPhotosFromPhone());
             notifyDataSetChanged();
         }
-        private class PhotoHolder extends RecyclerView.ViewHolder {
 
+        private class PhotoHolder extends RecyclerView.ViewHolder {
             ImageView photo;
 
             PhotoHolder(@NonNull View itemView) {
