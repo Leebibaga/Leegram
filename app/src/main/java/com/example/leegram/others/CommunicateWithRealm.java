@@ -53,23 +53,23 @@ public class CommunicateWithRealm {
         }
         return photoItems;
     }
-
-    public byte[] getPhoto(String value) {
-        byte[] photoItem;
-        Realm realm = null;
-        try {
-            realm = Realm.getDefaultInstance();
-            PhotoItem results = realm
-                    .where(PhotoItem.class)
-                    .equalTo("pictureURL", value)
-                    .findAll()
-                    .first();
-            photoItem = results.getPicture();
-        } finally {
-            if (realm != null) {
-                realm.close();
-            }
-        }
-        return photoItem;
-    }
+//
+//    public byte[] getPhoto(String value) {
+//        byte[] photoItem;
+//        Realm realm = null;
+//        try {
+//            realm = Realm.getDefaultInstance();
+//            PhotoItem results = realm
+//                    .where(PhotoItem.class)
+//                    .equalTo("pictureURL", value)
+//                    .findAll()
+//                    .first();
+//            photoItem = results.getPicture();
+//        } finally {
+//            if (realm != null) {
+//                realm.close();
+//            }
+//        }
+//        return photoItem;
+//    }
 }

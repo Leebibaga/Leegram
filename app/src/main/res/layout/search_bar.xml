@@ -16,6 +16,7 @@
         android:drawableLeft="@drawable/ic_search_black_24dp"
         android:drawableStart="@drawable/ic_search_black_24dp"
         android:drawablePadding="5dp"
+        app:backgroundTint="@color/colorPrimary"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 

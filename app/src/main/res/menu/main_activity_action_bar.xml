@@ -12,16 +12,37 @@
         tools:ignore="HardcodedText" />
 
     <item
-        android:id="@+id/search"
-        android:title="search"
-        android:visible="false"
-        app:showAsAction="ifRoom" />
-
-    <item
         android:id="@+id/add_chosen_photos"
         android:icon="@drawable/ic_check"
         android:title="check"
         android:visible="false"
         app:showAsAction="always"/>
+
+    <item
+        android:id="@+id/clear_search"
+        android:orderInCategory="200"
+        app:showAsAction="always"
+        android:icon="@drawable/ic_clear"
+        android:title="Save"
+        android:visible="false"
+        tools:ignore="HardcodedText" />
+
+    <item
+        android:id="@+id/clear_edit"
+        android:orderInCategory="200"
+        app:showAsAction="always"
+        android:icon="@drawable/ic_clear"
+        android:title="Save"
+        android:visible="false"
+        tools:ignore="HardcodedText" />
+
+    <item
+        android:id="@+id/trash"
+        android:orderInCategory="200"
+        app:showAsAction="always"
+        android:icon="@drawable/ic_delete"
+        android:title="Save"
+        android:visible="false"
+        tools:ignore="HardcodedText" />
 
 </menu>
