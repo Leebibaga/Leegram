@@ -4,19 +4,20 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <item
-        android:id="@+id/add_photos"
-        android:icon="@drawable/ic_add"
+        android:id="@+id/clear_edit"
+        android:icon="@drawable/ic_clear"
         android:orderInCategory="200"
-        android:title="Edit"
+        android:title="Save"
         android:visible="false"
         app:showAsAction="ifRoom"
         tools:ignore="HardcodedText" />
 
     <item
-        android:id="@+id/add_folders"
-        android:icon="@drawable/ic_add"
+        android:id="@+id/trash"
+        android:icon="@drawable/ic_delete"
         android:orderInCategory="200"
-        android:title="Edit"
+        android:title="Save"
+        android:visible="false"
         app:showAsAction="ifRoom"
         tools:ignore="HardcodedText" />
 

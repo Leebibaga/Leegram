@@ -8,6 +8,7 @@ import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 import android.support.annotation.RequiresApi;
 import android.support.constraint.ConstraintLayout;
 import android.support.v4.app.Fragment;
@@ -24,6 +25,7 @@ import android.widget.ProgressBar;
 import android.widget.Toast;
 
 import com.example.leegram.activities.MainActivity;
+import com.example.leegram.model.FolderItem;
 import com.example.leegram.others.OnItemClickedListener;
 import com.example.leegram.others.PhotosDownloader;
 import com.example.leegram.R;
@@ -39,6 +41,7 @@ import java.util.List;
 import java.util.Objects;
 
 import io.realm.Realm;
+import io.realm.RealmList;
 
 public class SearchPhotosFragment extends Fragment implements PhotosDownloader.PhotoDownloadCallback {
 
@@ -76,6 +79,12 @@ public class SearchPhotosFragment extends Fragment implements PhotosDownloader.P
         mOnItemClickedListener.setActionBarMode(MainActivity.ActionBarMode.SEARCH);
         Objects.requireNonNull(getActivity()).invalidateOptionsMenu();
         return rootView;
+    }
+
+    @Override
+    public void onCreate(@Nullable Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setHasOptionsMenu(true);
     }
 
     @SuppressLint("NewApi")
@@ -245,7 +254,9 @@ public class SearchPhotosFragment extends Fragment implements PhotosDownloader.P
                 photoItems.add(item);
             }
             try (Realm realm = Realm.getDefaultInstance()) {
-                realm.executeTransaction(realm1 -> realm1.insertOrUpdate(photoItems));
+                FolderItem folderItem = realm.where(FolderItem.class).equalTo("id", "").findFirst();
+                Objects.requireNonNull(folderItem).setPhotoItems((RealmList<PhotoItem>) photoItems);
+                realm.executeTransaction(realm1 -> realm1.copyToRealmOrUpdate(folderItem));
             }
             return null;
         }

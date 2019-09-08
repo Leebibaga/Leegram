@@ -2,22 +2,21 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools">
-
     <item
-        android:id="@+id/add_photos"
-        android:icon="@drawable/ic_add"
-        android:orderInCategory="200"
-        android:title="Edit"
+        android:id="@+id/add_chosen_photos"
+        android:icon="@drawable/ic_check"
+        android:title="check"
         android:visible="false"
-        app:showAsAction="ifRoom"
+        app:showAsAction="always"
         tools:ignore="HardcodedText" />
 
     <item
-        android:id="@+id/add_folders"
-        android:icon="@drawable/ic_add"
+        android:id="@+id/clear_search"
         android:orderInCategory="200"
-        android:title="Edit"
-        app:showAsAction="ifRoom"
+        app:showAsAction="always"
+        android:icon="@drawable/ic_clear"
+        android:title="Save"
+        android:visible="false"
         tools:ignore="HardcodedText" />
 
 </menu>

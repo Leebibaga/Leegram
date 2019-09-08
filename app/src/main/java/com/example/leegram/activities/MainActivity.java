@@ -270,5 +270,6 @@ public class MainActivity extends AppCompatActivity implements FolderFragment.On
     @Override
     public void onBackPressed() {
         super.onBackPressed();
+        getSupportFragmentManager().popBackStack();
     }
 }

@@ -37,6 +37,12 @@ public class CreateNewFolderFragment extends Fragment {
 
 
     @Override
+    public void onCreate(@Nullable Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setHasOptionsMenu(true);
+    }
+
+    @Override
     public void onAttach(Context context) {
         super.onAttach(context);
         mOnItemClickedListener = (OnItemClickedListener) context;
