@@ -23,7 +23,6 @@ import com.example.leegram.activities.MainActivity;
 import com.example.leegram.model.FolderItem;
 import com.example.leegram.model.PhotoItem;
 import com.example.leegram.others.OnItemClickedListener;
-import com.facebook.shimmer.ShimmerFrameLayout;
 
 import java.util.LinkedList;
 import java.util.List;
@@ -31,7 +30,6 @@ import java.util.Objects;
 
 import io.realm.Realm;
 import io.realm.RealmList;
-import io.realm.RealmResults;
 
 public class FolderFragment extends Fragment {
 
@@ -92,7 +90,7 @@ public class FolderFragment extends Fragment {
             noDataText.setVisibility(View.GONE);
             favoritePhotos.setVisibility(View.VISIBLE);
         }
-        mOnItemClickedListener.setActionBarMode(MainActivity.ActionBarMode.MAIN_SCREEN);
+        mOnItemClickedListener.setActionBarMode(MainActivity.ActionBarMode.FOLDER_SCREEN);
         Objects.requireNonNull(getActivity()).invalidateOptionsMenu();
     }
 

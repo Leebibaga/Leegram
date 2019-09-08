@@ -4,6 +4,7 @@ import android.content.Context;
 import android.os.Build;
 import android.os.Handler;
 import android.support.annotation.RequiresApi;
+import android.support.v4.app.FragmentManager;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.text.Editable;
@@ -15,6 +16,7 @@ import android.view.inputmethod.InputMethodManager;
 import android.widget.EditText;
 
 import com.example.leegram.R;
+import com.example.leegram.fragments.CreateNewFolderFragment;
 import com.example.leegram.fragments.EditFavoriteListFragment;
 import com.example.leegram.fragments.FolderFragment;
 import com.example.leegram.fragments.FolderListFragment;
@@ -27,18 +29,22 @@ import java.util.Objects;
 public class MainActivity extends AppCompatActivity implements FolderFragment.OnLongClickPhotoListener,
         OnItemClickedListener, SearchPhotosFragment.OnFinishedSearchListener {
 
+    private boolean enteredNewFolder = false;
+
     public enum ActionBarMode {
-        MAIN_SCREEN, SEARCH, SEARCH_ITEM_CLICKED, EDIT, EDIT_ITEM_CLICKED
+        FOLDER_SCREEN, SEARCH, SEARCH_ITEM_CLICKED, EDIT, EDIT_ITEM_CLICKED, FOLDER_LIST_SCREEN, CREATE_FOLDER_SCREEN
     }
 
     private final String SEARCH_TAG = "search_fragment";
     private final String EDIT_TAG = "edit_fragment";
-    private final String FAVORITE_TAG= "favorite_fragment";
+    private final String FAVORITE_TAG = "favorite_fragment";
+    private final String FOLDER_LIST = "folder_list";
+    private final String CREATE_FOLDER = "create_folder";
 
 
     //view
     private SearchPhotosFragment searchPhotosFragment;
-    private FolderFragment folderFragment;
+    private CreateNewFolderFragment createNewFolderFragment;
     private EditFavoriteListFragment editFavoriteListFragment;
     private FolderListFragment folderListFragment;
     private ActionBarMode actionBarMode;
@@ -52,15 +58,14 @@ public class MainActivity extends AppCompatActivity implements FolderFragment.On
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         if (savedInstanceState == null) {
+            createNewFolderFragment = new CreateNewFolderFragment();
             searchPhotosFragment = new SearchPhotosFragment();
-            folderFragment = new FolderFragment();
             editFavoriteListFragment = new EditFavoriteListFragment();
             folderListFragment = new FolderListFragment();
-            actionBarMode = ActionBarMode.MAIN_SCREEN;
+            actionBarMode = ActionBarMode.FOLDER_LIST_SCREEN;
         }
         getSupportFragmentManager().beginTransaction()
                 .add(R.id.main_activity_container, folderListFragment)
-                .addToBackStack(FAVORITE_TAG)
                 .commit();
     }
 
@@ -70,20 +75,24 @@ public class MainActivity extends AppCompatActivity implements FolderFragment.On
         switch (actionBarMode) {
             case EDIT:
                 Objects.requireNonNull(getSupportActionBar()).setDisplayShowTitleEnabled(true);
+                getSupportActionBar().setTitle("Leegram");
                 menu.findItem(R.id.clear_edit).setVisible(true);
                 menu.findItem(R.id.clear_search).setVisible(false);
                 menu.findItem(R.id.add_photos).setVisible(false);
                 menu.findItem(R.id.trash).setVisible(false);
                 menu.findItem(R.id.add_chosen_photos).setVisible(false);
+                menu.findItem(R.id.add_folders).setVisible(false);
                 break;
-            case MAIN_SCREEN:
+            case FOLDER_SCREEN:
                 Objects.requireNonNull(getSupportActionBar()).setDisplayShowTitleEnabled(true);
                 getSupportActionBar().setDisplayShowCustomEnabled(false);
+                getSupportActionBar().setTitle("Leegram");
                 menu.findItem(R.id.add_photos).setVisible(true);
                 menu.findItem(R.id.trash).setVisible(false);
                 menu.findItem(R.id.clear_edit).setVisible(false);
                 menu.findItem(R.id.clear_search).setVisible(false);
                 menu.findItem(R.id.add_chosen_photos).setVisible(false);
+                menu.findItem(R.id.add_folders).setVisible(false);
                 break;
             case SEARCH:
                 getSupportActionBar().setDisplayShowCustomEnabled(true);
@@ -93,18 +102,41 @@ public class MainActivity extends AppCompatActivity implements FolderFragment.On
                 menu.findItem(R.id.clear_search).setVisible(false);
                 menu.findItem(R.id.add_photos).setVisible(false);
                 menu.findItem(R.id.add_chosen_photos).setVisible(false);
+                menu.findItem(R.id.add_folders).setVisible(false);
                 break;
             case EDIT_ITEM_CLICKED:
+                getSupportActionBar().setTitle("Leegram");
                 menu.findItem(R.id.trash).setVisible(true);
                 menu.findItem(R.id.clear_edit).setVisible(true);
                 menu.findItem(R.id.clear_search).setVisible(false);
                 menu.findItem(R.id.add_photos).setVisible(false);
+                menu.findItem(R.id.add_folders).setVisible(false);
                 break;
             case SEARCH_ITEM_CLICKED:
+                getSupportActionBar().setTitle("Leegram");
                 menu.findItem(R.id.clear_edit).setVisible(false);
                 menu.findItem(R.id.clear_search).setVisible(true);
                 menu.findItem(R.id.add_chosen_photos).setVisible(true);
                 menu.findItem(R.id.add_photos).setVisible(false);
+                menu.findItem(R.id.add_folders).setVisible(false);
+                break;
+            case FOLDER_LIST_SCREEN:
+                getSupportActionBar().setTitle("Leegram");
+                menu.findItem(R.id.add_folders).setVisible(true);
+                menu.findItem(R.id.clear_edit).setVisible(false);
+                menu.findItem(R.id.clear_search).setVisible(false);
+                menu.findItem(R.id.add_chosen_photos).setVisible(false);
+                menu.findItem(R.id.add_photos).setVisible(false);
+                break;
+            case CREATE_FOLDER_SCREEN:
+                Objects.requireNonNull(getSupportActionBar()).setDisplayShowTitleEnabled(true);
+                getSupportActionBar().setDisplayShowCustomEnabled(false);
+                getSupportActionBar().setTitle("Create New Folder");
+                menu.findItem(R.id.clear_edit).setVisible(false);
+                menu.findItem(R.id.clear_search).setVisible(false);
+                menu.findItem(R.id.add_chosen_photos).setVisible(false);
+                menu.findItem(R.id.add_photos).setVisible(false);
+                menu.findItem(R.id.add_folders).setVisible(false);
                 break;
         }
         return true;
@@ -177,6 +209,9 @@ public class MainActivity extends AppCompatActivity implements FolderFragment.On
             case R.id.trash:
                 deleteItems();
                 break;
+            case R.id.add_folders:
+                navigateToCreateNewFolder();
+                break;
         }
         return super.onOptionsItemSelected(item);
     }
@@ -186,8 +221,6 @@ public class MainActivity extends AppCompatActivity implements FolderFragment.On
                 .replace(R.id.main_activity_container, searchPhotosFragment)
                 .addToBackStack(SEARCH_TAG)
                 .commit();
-        actionBarMode = ActionBarMode.SEARCH;
-        invalidateOptionsMenu();
         toggleSoftKeyboard(true);
     }
 
@@ -197,20 +230,22 @@ public class MainActivity extends AppCompatActivity implements FolderFragment.On
 
     private void clearSearchChoices() {
         searchPhotosFragment.clearChoices();
-        actionBarMode = ActionBarMode.SEARCH;
-        invalidateOptionsMenu();
     }
 
     private void clearEditChoices() {
         editFavoriteListFragment.clearChanges();
-        actionBarMode = ActionBarMode.EDIT;
-        invalidateOptionsMenu();
     }
 
     private void deleteItems() {
         editFavoriteListFragment.deleteSelectedItems();
-        actionBarMode = ActionBarMode.EDIT;
-        invalidateOptionsMenu();
+    }
+
+    public void navigateToCreateNewFolder(){
+        enteredNewFolder = true;
+        getSupportFragmentManager().beginTransaction()
+                .replace(R.id.main_activity_container, createNewFolderFragment)
+                .addToBackStack(CREATE_FOLDER)
+                .commit();
     }
 
     @Override
@@ -219,8 +254,6 @@ public class MainActivity extends AppCompatActivity implements FolderFragment.On
                 .replace(R.id.main_activity_container, editFavoriteListFragment)
                 .addToBackStack(EDIT_TAG)
                 .commit();
-        editFavoriteListFragment.setItemClicked(photoClicked);
-        actionBarMode = ActionBarMode.EDIT;
         invalidateOptionsMenu();
     }
 
@@ -236,9 +269,6 @@ public class MainActivity extends AppCompatActivity implements FolderFragment.On
 
     @Override
     public void onBackPressed() {
-        getSupportFragmentManager().popBackStackImmediate();
-        if (getSupportFragmentManager().getBackStackEntryCount() == 0) {
-            finish();
-        }
+        super.onBackPressed();
     }
 }

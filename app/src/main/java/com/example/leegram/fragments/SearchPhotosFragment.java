@@ -57,6 +57,7 @@ public class SearchPhotosFragment extends Fragment implements PhotosDownloader.P
     private OnFinishedSearchListener mFinishedSearchListener;
     private PhotosDownloader photosDownloader;
     private List<String> photoIDs = new LinkedList<>();
+    private OnItemClickedListener mOnItemClickedListener;
 
     // adapters
     private SearchPhotosListAdapter searchPhotosListAdapter;
@@ -70,8 +71,10 @@ public class SearchPhotosFragment extends Fragment implements PhotosDownloader.P
             spinner = rootView.findViewById(R.id.spinner);
             listOfPhotos = rootView.findViewById(R.id.photos_list);
             skeletonLayout = rootView.findViewById(R.id.parentShimmerLayout);
+            initUI();
         }
-        initUI();
+        mOnItemClickedListener.setActionBarMode(MainActivity.ActionBarMode.SEARCH);
+        Objects.requireNonNull(getActivity()).invalidateOptionsMenu();
         return rootView;
     }
 
@@ -105,6 +108,7 @@ public class SearchPhotosFragment extends Fragment implements PhotosDownloader.P
         super.onAttach(context);
         mClickListener = (OnItemClickedListener) context;
         mFinishedSearchListener = (OnFinishedSearchListener) context;
+        mOnItemClickedListener = (OnItemClickedListener) context;
     }
 
     @Override

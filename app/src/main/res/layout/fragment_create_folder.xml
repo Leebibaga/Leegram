@@ -1,26 +1,31 @@
 <?xml version="1.0" encoding="utf-8"?>
 <android.support.constraint.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    xmlns:app="http://schemas.android.com/apk/res-auto">
+    android:layout_height="match_parent">
 
     <EditText
         android:id="@+id/enter_folder_name"
         android:layout_width="match_parent"
         android:layout_height="0dp"
+        android:layout_marginStart="5dp"
+        android:layout_marginLeft="5dp"
         android:layout_marginTop="20dp"
-        android:text="Enter Folder Name"
-        android:textColor="@color/cardview_shadow_start_color"
+        android:hint="Enter Folder Name"
+        android:textColorHint="@color/cardview_shadow_start_color"
+        app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintStart_toStartOf="parent"/>
+        tools:ignore="HardcodedText" />
+
     <LinearLayout
         android:id="@+id/make_default"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_margin="5dp"
-        app:layout_constraintTop_toBottomOf="@+id/enter_folder_name"
         app:layout_constraintBottom_toTopOf="@+id/create_folder"
-        app:layout_constraintStart_toStartOf="parent">
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/enter_folder_name">
 
         <android.support.v7.widget.AppCompatRadioButton
             android:id="@+id/make_default_toggle"
@@ -30,14 +35,15 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Make default folder"/>
+            android:text="Make default folder" />
 
     </LinearLayout>
+
     <Button
         android:id="@+id/create_folder"
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:text="Create"
-        app:layout_constraintTop_toBottomOf="@+id/make_default"/>
+        app:layout_constraintTop_toBottomOf="@+id/make_default" />
 
 </android.support.constraint.ConstraintLayout>

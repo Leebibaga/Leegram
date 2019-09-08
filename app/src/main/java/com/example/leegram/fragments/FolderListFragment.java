@@ -1,39 +1,55 @@
 package com.example.leegram.fragments;
 
+import android.content.Context;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
+import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
+import android.support.v7.widget.StaggeredGridLayoutManager;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import com.example.leegram.R;
+import com.example.leegram.activities.MainActivity;
 import com.example.leegram.model.FolderItem;
+import com.example.leegram.others.OnItemClickedListener;
 
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Objects;
 
 import io.realm.Realm;
+import io.realm.RealmResults;
 
 public class FolderListFragment extends Fragment {
 
     private final String DEFAULT_FOLDER = "default_folder";
 
     //view
-    private ImageView noFolderMessage;
+    private TextView noFolderMessage;
     private RecyclerView folderList;
     private View rootView;
 
     //data
     private String defaultFolder;
     private List<FolderItem> folderItems = new LinkedList<>();
+    private OnItemClickedListener mOnItemClickedListener;
 
     //Adapter
     private FolderListFolderAdapter folderListFolderAdapter;
+
+
+    @Override
+    public void onAttach(Context context) {
+        super.onAttach(context);
+        mOnItemClickedListener = (OnItemClickedListener) context;
+    }
 
     @Nullable
     @Override
@@ -43,6 +59,8 @@ public class FolderListFragment extends Fragment {
             folderListFolderAdapter = new FolderListFolderAdapter();
             setUI();
         }
+        mOnItemClickedListener.setActionBarMode(MainActivity.ActionBarMode.FOLDER_LIST_SCREEN);
+        Objects.requireNonNull(getActivity()).invalidateOptionsMenu();
         getFoldersNames();
         if (folderItems.isEmpty()) {
             noFolderMessage.setVisibility(View.VISIBLE);
@@ -60,13 +78,18 @@ public class FolderListFragment extends Fragment {
     public void setUI() {
         noFolderMessage = rootView.findViewById(R.id.no_folder_text);
         folderList = rootView.findViewById(R.id.folder_list);
+        LinearLayoutManager linearLayoutManager =
+                new LinearLayoutManager(getContext(), LinearLayoutManager.VERTICAL, false);
+        folderList.setLayoutManager(linearLayoutManager);
         folderList.setAdapter(folderListFolderAdapter);
     }
 
     private void getFoldersNames() {
         try (Realm realm = Realm.getDefaultInstance()) {
-            folderItems = realm.where(FolderItem.class)
+            RealmResults<FolderItem> realmResults = realm.where(FolderItem.class)
                     .findAll();
+            folderItems.clear();
+            folderItems.addAll(realm.copyFromRealm(realmResults));
         }
     }
 
@@ -85,12 +108,12 @@ public class FolderListFragment extends Fragment {
 
     private void navigateToFolder(String folderId) {
         Bundle bundle = new Bundle();
-        bundle.putString("folder_name", folderId);
+        bundle.putString("folderId", folderId);
         FolderFragment folderFragment = new FolderFragment();
         folderFragment.setArguments(bundle);
         getActivity().getSupportFragmentManager().beginTransaction()
                 .replace(R.id.main_activity_container, folderFragment)
-                .addToBackStack(DEFAULT_FOLDER)
+                .addToBackStack(folderId)
                 .commit();
     }
 
@@ -111,6 +134,10 @@ public class FolderListFragment extends Fragment {
         @Override
         public void onBindViewHolder(@NonNull FolderListHolder viewHolder, int position) {
             viewHolder.folderName.setText(folderItems.get(position).getFolderName());
+            viewHolder.folderName.setOnClickListener(v -> {
+                navigateToFolder(folderItems.get(position).getId());
+                mOnItemClickedListener.setActionBarMode(MainActivity.ActionBarMode.FOLDER_SCREEN);
+            });
         }
 
         @Override

@@ -50,6 +50,7 @@ public class EditFavoriteListFragment extends Fragment implements OnStartDragLis
     private ItemTouchHelper mItemTouchHelper;
     private OnItemClickedListener mClickListener;
     private String photoToHighlight;
+    private OnItemClickedListener mOnItemClickedListener;
 
     //adapter
     private EditFavoriteListPhotosAdapter editFavoriteListPhotosAdapter;
@@ -59,6 +60,7 @@ public class EditFavoriteListFragment extends Fragment implements OnStartDragLis
     public void onAttach(Context context) {
         super.onAttach(context);
         mClickListener = (OnItemClickedListener) context;
+        mOnItemClickedListener = (OnItemClickedListener) context;
     }
 
     @Override
@@ -75,6 +77,8 @@ public class EditFavoriteListFragment extends Fragment implements OnStartDragLis
             mItemTouchHelper = new ItemTouchHelper(callback);
             mItemTouchHelper.attachToRecyclerView(favoritePhotos);
         }
+        mOnItemClickedListener.setActionBarMode(MainActivity.ActionBarMode.EDIT);
+        Objects.requireNonNull(getActivity()).invalidateOptionsMenu();
         editFavoriteListPhotosAdapter.getSelected().add(photoToHighlight);
         updateData();
         return rootView;
