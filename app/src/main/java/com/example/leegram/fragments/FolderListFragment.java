@@ -7,18 +7,17 @@ import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
-import android.support.v7.widget.StaggeredGridLayoutManager;
 import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.ImageView;
-import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import com.example.leegram.R;
 import com.example.leegram.activities.MainActivity;
 import com.example.leegram.model.FolderItem;
-import com.example.leegram.others.OnItemClickedListener;
 
 import java.util.LinkedList;
 import java.util.List;
@@ -29,7 +28,7 @@ import io.realm.RealmResults;
 
 public class FolderListFragment extends Fragment {
 
-    private final String DEFAULT_FOLDER = "default_folder";
+    private final String CREATE_FOLDER = "create_folder";
 
     //view
     private TextView noFolderMessage;
@@ -39,7 +38,6 @@ public class FolderListFragment extends Fragment {
     //data
     private String defaultFolder;
     private List<FolderItem> folderItems = new LinkedList<>();
-    private OnItemClickedListener mOnItemClickedListener;
 
     //Adapter
     private FolderListFolderAdapter folderListFolderAdapter;
@@ -48,13 +46,30 @@ public class FolderListFragment extends Fragment {
     @Override
     public void onAttach(Context context) {
         super.onAttach(context);
-        mOnItemClickedListener = (OnItemClickedListener) context;
     }
 
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setHasOptionsMenu(true);
+    }
+
+    @Override
+    public void onPrepareOptionsMenu(Menu menu) {
+        MenuInflater inflater = getActivity().getMenuInflater();
+        inflater.inflate(R.menu.menu_folder, menu);
+        super.onPrepareOptionsMenu(menu);
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        int itemId = item.getItemId();
+        switch(itemId) {
+            case R.id.add:
+                navigateToCreateNewFolderScreen();
+                break;
+        }
+        return super.onOptionsItemSelected(item);
     }
 
     @Nullable
@@ -65,7 +80,6 @@ public class FolderListFragment extends Fragment {
             folderListFolderAdapter = new FolderListFolderAdapter();
             setUI();
         }
-        mOnItemClickedListener.setActionBarMode(MainActivity.ActionBarMode.FOLDER_LIST_SCREEN);
         Objects.requireNonNull(getActivity()).invalidateOptionsMenu();
         getFoldersNames();
         if (folderItems.isEmpty()) {
@@ -123,6 +137,13 @@ public class FolderListFragment extends Fragment {
                 .commit();
     }
 
+    private void navigateToCreateNewFolderScreen(){
+        getActivity().getSupportFragmentManager().beginTransaction()
+                .replace(R.id.main_activity_container, new CreateNewFolderFragment())
+                .addToBackStack(CREATE_FOLDER)
+                .commit();
+    }
+
     public class FolderListFolderAdapter extends RecyclerView.Adapter<FolderListFolderAdapter.FolderListHolder> {
 
         private LayoutInflater inflater;
@@ -142,7 +163,6 @@ public class FolderListFragment extends Fragment {
             viewHolder.folderName.setText(folderItems.get(position).getFolderName());
             viewHolder.folderName.setOnClickListener(v -> {
                 navigateToFolder(folderItems.get(position).getId());
-                mOnItemClickedListener.setActionBarMode(MainActivity.ActionBarMode.FOLDER_SCREEN);
             });
         }
 

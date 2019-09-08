@@ -6,17 +6,16 @@ import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
 import android.view.LayoutInflater;
+import android.view.Menu;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.EditText;
-import android.widget.LinearLayout;
 import android.widget.RadioButton;
 
 import com.example.leegram.R;
 import com.example.leegram.activities.MainActivity;
 import com.example.leegram.model.FolderItem;
-import com.example.leegram.others.OnItemClickedListener;
 
 import java.util.Objects;
 import java.util.UUID;
@@ -27,7 +26,6 @@ public class CreateNewFolderFragment extends Fragment {
 
     //data
     private String folderId;
-    private OnItemClickedListener mOnItemClickedListener;
 
     //view
     private View rootView;
@@ -43,9 +41,15 @@ public class CreateNewFolderFragment extends Fragment {
     }
 
     @Override
+    public void onPrepareOptionsMenu(Menu menu) {
+        super.onPrepareOptionsMenu(menu);
+        getActivity().getActionBar().setTitle("Create New Folder");
+
+    }
+
+    @Override
     public void onAttach(Context context) {
         super.onAttach(context);
-        mOnItemClickedListener = (OnItemClickedListener) context;
     }
 
     @Nullable
@@ -55,7 +59,6 @@ public class CreateNewFolderFragment extends Fragment {
             rootView = inflater.inflate(R.layout.fragment_create_folder, container, false);
             setUI();
         }
-        mOnItemClickedListener.setActionBarMode(MainActivity.ActionBarMode.CREATE_FOLDER_SCREEN);
         Objects.requireNonNull(getActivity()).invalidateOptionsMenu();
         createFolder.setOnClickListener(v -> {
             setNewFolder();
@@ -90,7 +93,5 @@ public class CreateNewFolderFragment extends Fragment {
                 .replace(R.id.main_activity_container, folderFragment)
                 .addToBackStack(null)
                 .commit();
-        mOnItemClickedListener.setActionBarMode(MainActivity.ActionBarMode.CREATE_FOLDER_SCREEN);
-        getActivity().invalidateOptionsMenu();
     }
 }

@@ -14,6 +14,9 @@ import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.StaggeredGridLayoutManager;
 import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
@@ -23,7 +26,6 @@ import com.example.leegram.R;
 import com.example.leegram.activities.MainActivity;
 import com.example.leegram.model.FolderItem;
 import com.example.leegram.model.PhotoItem;
-import com.example.leegram.others.OnItemClickedListener;
 
 import java.util.LinkedList;
 import java.util.List;
@@ -34,10 +36,11 @@ import io.realm.RealmList;
 
 public class FolderFragment extends Fragment {
 
+    private final String SEARCH_TAG = "search_fragment";
+
     public interface OnLongClickPhotoListener {
         void onPhotoClicked(String itemClicked);
     }
-
 
     //view
     private View rootView;
@@ -50,7 +53,6 @@ public class FolderFragment extends Fragment {
     private FolderItem folderItem;
     private List<String> photoDir = new LinkedList<>();
     private OnLongClickPhotoListener mOnClickPhoto;
-    private OnItemClickedListener mOnItemClickedListener;
 
     //adapter
     private FavoritePhotosAdapter favoritePhotosAdapter;
@@ -59,13 +61,30 @@ public class FolderFragment extends Fragment {
     public void onAttach(Context context) {
         super.onAttach(context);
         mOnClickPhoto = (OnLongClickPhotoListener) context;
-        mOnItemClickedListener = (OnItemClickedListener) context;
     }
 
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setHasOptionsMenu(true);
+    }
+
+    @Override
+    public void onPrepareOptionsMenu(Menu menu) {
+        MenuInflater inflater = getActivity().getMenuInflater();
+        inflater.inflate(R.menu.menu_folder, menu);
+        super.onPrepareOptionsMenu(menu);
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        int itemId = item.getItemId();
+        switch(itemId) {
+            case R.id.add:
+                moveToSearchScreen();
+                break;
+        }
+        return super.onOptionsItemSelected(item);
     }
 
     @Override
@@ -97,7 +116,6 @@ public class FolderFragment extends Fragment {
             noDataText.setVisibility(View.GONE);
             favoritePhotos.setVisibility(View.VISIBLE);
         }
-        mOnItemClickedListener.setActionBarMode(MainActivity.ActionBarMode.FOLDER_SCREEN);
         Objects.requireNonNull(getActivity()).invalidateOptionsMenu();
     }
 
@@ -139,6 +157,13 @@ public class FolderFragment extends Fragment {
             setPhotosURLs();
             favoritePhotosAdapter.setPhotos();
         });
+    }
+
+    private void moveToSearchScreen() {
+        getActivity().getSupportFragmentManager().beginTransaction()
+                .replace(R.id.main_activity_container, new SearchPhotosFragment())
+                .addToBackStack(SEARCH_TAG)
+                .commit();
     }
 
     public class FavoritePhotosAdapter extends RecyclerView.Adapter<FavoritePhotosAdapter.PhotoHolder> {

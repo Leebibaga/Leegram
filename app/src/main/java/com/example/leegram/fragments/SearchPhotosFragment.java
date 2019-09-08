@@ -7,26 +7,30 @@ import android.graphics.Bitmap;
 import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.annotation.RequiresApi;
-import android.support.constraint.ConstraintLayout;
 import android.support.v4.app.Fragment;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.StaggeredGridLayoutManager;
-import android.util.Log;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.inputmethod.InputMethodManager;
+import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
 import android.widget.Toast;
 
-import com.example.leegram.activities.MainActivity;
 import com.example.leegram.model.FolderItem;
-import com.example.leegram.others.OnItemClickedListener;
 import com.example.leegram.others.PhotosDownloader;
 import com.example.leegram.R;
 import com.example.leegram.model.PhotoItem;
@@ -54,13 +58,15 @@ public class SearchPhotosFragment extends Fragment implements PhotosDownloader.P
     private RecyclerView listOfPhotos;
     private View skeletonLayout;
     private ProgressBar spinner;
+    private EditText searchPhoto;
 
     // data
-    private OnItemClickedListener mClickListener;
     private OnFinishedSearchListener mFinishedSearchListener;
     private PhotosDownloader photosDownloader;
     private List<String> photoIDs = new LinkedList<>();
-    private OnItemClickedListener mOnItemClickedListener;
+    private Runnable delayCounter;
+    private Handler handleSpinner = new Handler();
+    private boolean isItemClicked = false;
 
     // adapters
     private SearchPhotosListAdapter searchPhotosListAdapter;
@@ -69,14 +75,12 @@ public class SearchPhotosFragment extends Fragment implements PhotosDownloader.P
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
         if (rootView == null) {
-            Log.e("alex", "onCreateView: ");
             rootView = inflater.inflate(R.layout.fragment_search_photos, container, false);
             spinner = rootView.findViewById(R.id.spinner);
             listOfPhotos = rootView.findViewById(R.id.photos_list);
             skeletonLayout = rootView.findViewById(R.id.parentShimmerLayout);
             initUI();
         }
-        mOnItemClickedListener.setActionBarMode(MainActivity.ActionBarMode.SEARCH);
         Objects.requireNonNull(getActivity()).invalidateOptionsMenu();
         return rootView;
     }
@@ -85,6 +89,77 @@ public class SearchPhotosFragment extends Fragment implements PhotosDownloader.P
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setHasOptionsMenu(true);
+    }
+
+
+    @Override
+    public void onPrepareOptionsMenu(Menu menu) {
+        MenuInflater inflater = getActivity().getMenuInflater();
+        inflater.inflate(R.menu.menu_search, menu);
+        getActivity().getActionBar().setDisplayShowCustomEnabled(true);
+        getActivity().getActionBar().setDisplayShowTitleEnabled(false);
+        getActivity().getActionBar().setCustomView(R.layout.search_bar);
+        searchPhoto = getActivity().getActionBar().getCustomView().findViewById(R.id.search_photos_bar);
+        searchBarAction();
+        if (isItemClicked){
+            menu.getItem(R.id.clear_search).setVisible(true);
+            menu.getItem(R.id.add_chosen_photos).setVisible(true);
+        } else {
+            menu.getItem(R.id.clear_search).setVisible(false);
+            menu.getItem(R.id.add_chosen_photos).setVisible(false);
+        }
+        super.onPrepareOptionsMenu(menu);
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        int itemId = item.getItemId();
+        switch(itemId) {
+            case R.id.add_chosen_photos:
+                savePhotos();
+                break;
+            case R.id.clear_search:
+                clearChoices();
+                break;
+        }
+        return super.onOptionsItemSelected(item);
+    }
+
+    private void searchBarAction() {
+        searchPhoto.requestFocus();
+        toggleSoftKeyboard(true);
+        searchPhoto.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+            }
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+            }
+
+            @Override
+            public void afterTextChanged(Editable s) {
+                if (delayCounter == null) {
+                    delayCounter = () -> {
+                        if (!searchPhoto.getText().toString().isEmpty()) {
+                            downloadPhotos(searchPhoto.getText().toString());
+                        }
+                    };
+                }
+                handleSpinner.removeCallbacks(delayCounter);
+                handleSpinner.postDelayed(delayCounter, 600);
+            }
+        });
+    }
+
+    public void toggleSoftKeyboard(boolean openKeyBoard) {
+        InputMethodManager imm = (InputMethodManager)
+                getActivity().getSystemService(Context.INPUT_METHOD_SERVICE);
+        if (openKeyBoard) {
+            imm.toggleSoftInput(InputMethodManager.SHOW_FORCED, 0);
+        } else {
+            imm.hideSoftInputFromWindow(searchPhoto.getWindowToken(), 0);
+        }
     }
 
     @SuppressLint("NewApi")
@@ -115,9 +190,7 @@ public class SearchPhotosFragment extends Fragment implements PhotosDownloader.P
     @Override
     public void onAttach(Context context) {
         super.onAttach(context);
-        mClickListener = (OnItemClickedListener) context;
         mFinishedSearchListener = (OnFinishedSearchListener) context;
-        mOnItemClickedListener = (OnItemClickedListener) context;
     }
 
     @Override
@@ -183,10 +256,10 @@ public class SearchPhotosFragment extends Fragment implements PhotosDownloader.P
                 }
 
                 if (selected.size() > 0) {
-                    mClickListener.setActionBarMode(MainActivity.ActionBarMode.SEARCH_ITEM_CLICKED);
+                    isItemClicked = true;
                     Objects.requireNonNull(getActivity()).invalidateOptionsMenu();
                 } else {
-                    mClickListener.setActionBarMode(MainActivity.ActionBarMode.SEARCH);
+                    isItemClicked = false;
                     Objects.requireNonNull(getActivity()).invalidateOptionsMenu();
                 }
             });

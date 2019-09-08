@@ -15,7 +15,6 @@ import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.StaggeredGridLayoutManager;
 import android.support.v7.widget.helper.ItemTouchHelper;
-import android.text.method.KeyListener;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -26,10 +25,8 @@ import android.view.ViewGroup;
 import android.widget.ImageView;
 
 import com.example.leegram.R;
-import com.example.leegram.activities.MainActivity;
 import com.example.leegram.model.PhotoItem;
 import com.example.leegram.others.FavoriteItemTouchCallBack;
-import com.example.leegram.others.OnItemClickedListener;
 import com.example.leegram.others.OnStartDragListener;
 
 import java.util.Collections;
@@ -52,9 +49,8 @@ public class EditFavoriteListFragment extends Fragment implements OnStartDragLis
     private RealmList<PhotoItem> deletedPhotoItems = new RealmList<>();
     private List<String> photosDir = new LinkedList<>();
     private ItemTouchHelper mItemTouchHelper;
-    private OnItemClickedListener mClickListener;
     private String photoToHighlight;
-    private OnItemClickedListener mOnItemClickedListener;
+    private boolean isItemClicked = false;
 
     //adapter
     private EditFavoriteListPhotosAdapter editFavoriteListPhotosAdapter;
@@ -63,8 +59,6 @@ public class EditFavoriteListFragment extends Fragment implements OnStartDragLis
     @Override
     public void onAttach(Context context) {
         super.onAttach(context);
-        mClickListener = (OnItemClickedListener) context;
-        mOnItemClickedListener = (OnItemClickedListener) context;
     }
 
     @Override
@@ -73,13 +67,32 @@ public class EditFavoriteListFragment extends Fragment implements OnStartDragLis
         setHasOptionsMenu(true);
     }
 
+
     @Override
-    public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
-        inflater.inflate(R.menu.main_activity_action_bar, menu);
-        super.onCreateOptionsMenu(menu, inflater);
+    public void onPrepareOptionsMenu(Menu menu) {
+        MenuInflater inflater = getActivity().getMenuInflater();
+        inflater.inflate(R.menu.menu_edit_favorite_list, menu);
+        if (isItemClicked){
+            menu.getItem(R.id.trash).setVisible(true);
+        } else {
+            menu.getItem(R.id.trash).setVisible(false);
+        }
+        super.onPrepareOptionsMenu(menu);
     }
 
-
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        int itemId = item.getItemId();
+        switch(itemId) {
+            case R.id.trash:
+                deleteSelectedItems();
+                break;
+            case R.id.clear_edit:
+                clearChanges();
+                break;
+        }
+        return super.onOptionsItemSelected(item);
+    }
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
@@ -95,9 +108,10 @@ public class EditFavoriteListFragment extends Fragment implements OnStartDragLis
             mItemTouchHelper = new ItemTouchHelper(callback);
             mItemTouchHelper.attachToRecyclerView(favoritePhotos);
         }
-        mOnItemClickedListener.setActionBarMode(MainActivity.ActionBarMode.EDIT);
         Objects.requireNonNull(getActivity()).invalidateOptionsMenu();
         editFavoriteListPhotosAdapter.getSelected().add(photoToHighlight);
+        isItemClicked = true;
+        getActivity().invalidateOptionsMenu();
         updateData();
         return rootView;
     }
@@ -229,9 +243,9 @@ public class EditFavoriteListFragment extends Fragment implements OnStartDragLis
                 unhighlightView(viewHolder);
             }
             if (selected.size() > 0) {
-                mClickListener.setActionBarMode(MainActivity.ActionBarMode.EDIT_ITEM_CLICKED);
+                isItemClicked = true;
             } else {
-                mClickListener.setActionBarMode(MainActivity.ActionBarMode.EDIT);
+               isItemClicked = false;
             }
             getActivity().invalidateOptionsMenu();
             viewHolder.photo.setOnClickListener(V -> {
@@ -255,9 +269,9 @@ public class EditFavoriteListFragment extends Fragment implements OnStartDragLis
                 }
 
                 if (selected.size() > 0) {
-                    mClickListener.setActionBarMode(MainActivity.ActionBarMode.EDIT_ITEM_CLICKED);
+                    isItemClicked = true;
                 } else {
-                    mClickListener.setActionBarMode(MainActivity.ActionBarMode.EDIT);
+                    isItemClicked = false;
                 }
                 getActivity().invalidateOptionsMenu();
             });
