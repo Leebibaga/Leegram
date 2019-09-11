@@ -24,7 +24,9 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
 
+import com.example.leegram.Const;
 import com.example.leegram.R;
+import com.example.leegram.model.Folder;
 import com.example.leegram.model.PhotoItem;
 import com.example.leegram.others.FavoriteItemTouchCallBack;
 import com.example.leegram.others.OnStartDragListener;
@@ -49,17 +51,10 @@ public class EditFavoriteListFragment extends Fragment implements OnStartDragLis
     private RealmList<PhotoItem> deletedPhotoItems = new RealmList<>();
     private List<String> photosDir = new LinkedList<>();
     private ItemTouchHelper mItemTouchHelper;
-    private String photoToHighlight;
     private boolean isItemClicked = false;
 
     //adapter
     private EditFavoriteListPhotosAdapter editFavoriteListPhotosAdapter;
-
-
-    @Override
-    public void onAttach(Context context) {
-        super.onAttach(context);
-    }
 
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
@@ -67,15 +62,18 @@ public class EditFavoriteListFragment extends Fragment implements OnStartDragLis
         setHasOptionsMenu(true);
     }
 
+    @Override
+    public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
+        inflater.inflate(R.menu.menu_edit_favorite_list, menu);
+    }
+
 
     @Override
     public void onPrepareOptionsMenu(Menu menu) {
-        MenuInflater inflater = getActivity().getMenuInflater();
-        inflater.inflate(R.menu.menu_edit_favorite_list, menu);
-        if (isItemClicked){
-            menu.getItem(R.id.trash).setVisible(true);
+        if (isItemClicked) {
+            menu.findItem(R.id.trash).setVisible(true);
         } else {
-            menu.getItem(R.id.trash).setVisible(false);
+            menu.findItem(R.id.trash).setVisible(false);
         }
         super.onPrepareOptionsMenu(menu);
     }
@@ -83,7 +81,7 @@ public class EditFavoriteListFragment extends Fragment implements OnStartDragLis
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         int itemId = item.getItemId();
-        switch(itemId) {
+        switch (itemId) {
             case R.id.trash:
                 deleteSelectedItems();
                 break;
@@ -108,24 +106,29 @@ public class EditFavoriteListFragment extends Fragment implements OnStartDragLis
             mItemTouchHelper = new ItemTouchHelper(callback);
             mItemTouchHelper.attachToRecyclerView(favoritePhotos);
         }
-        Objects.requireNonNull(getActivity()).invalidateOptionsMenu();
-        editFavoriteListPhotosAdapter.getSelected().add(photoToHighlight);
-        isItemClicked = true;
-        getActivity().invalidateOptionsMenu();
         updateData();
+        getSelectedPhoto();
+        isItemClicked = true;
         return rootView;
     }
 
     private void updateData() {
         try (Realm realm = Realm.getDefaultInstance()) {
-            RealmResults<PhotoItem> results = realm
-                    .where(PhotoItem.class)
-                    .sort("position")
-                    .findAll();
-            photoItems.addAll(realm.copyFromRealm(results));
+            Folder folderItem = realm
+                    .where(Folder.class)
+                    .equalTo("id", getArguments().getString(Const.FOLDER_ID))
+                    .findFirst();
+            photoItems.clear();
+            photoItems.addAll(realm.copyFromRealm(folderItem.getPhotoItems().sort("position")));
         }
         setPhotosData();
         editFavoriteListPhotosAdapter.setPhotos();
+    }
+
+    private void getSelectedPhoto() {
+        editFavoriteListPhotosAdapter.getSelected().add(getArguments().getString(Const.PHOTO_DIR));
+        int indexOfPhoto = photosDir.indexOf(getArguments().getString(Const.PHOTO_DIR));
+        deletedPhotoItems.add(photoItems.get(indexOfPhoto));
     }
 
     private void setPhotosData() {
@@ -185,7 +188,7 @@ public class EditFavoriteListFragment extends Fragment implements OnStartDragLis
                 realm.executeTransaction(realm1 -> {
                     RealmResults<PhotoItem> results = realm1
                             .where(PhotoItem.class)
-                            .equalTo("picture", deletedPhotoItem.getPictureURL())
+                            .equalTo("picture", deletedPhotoItem.getPicture())
                             .findAll();
                     results.deleteAllFromRealm();
                 });
@@ -193,152 +196,141 @@ public class EditFavoriteListFragment extends Fragment implements OnStartDragLis
         }
     }
 
-    public void clearChanges(){
-        photoItems.clear();
-        updateData();
-    }
-
-    public void setItemClicked(String photoClicked){
-        photoToHighlight = photoClicked;
-    }
-
-    @Override
-    public void onDestroy() {
-        super.onDestroy();
-        try(Realm realm = Realm.getDefaultInstance()){
-            realm.executeTransaction(realm1 -> realm.copyToRealmOrUpdate(photoItems));
-        }
-    }
-
-    public class EditFavoriteListPhotosAdapter extends RecyclerView.Adapter<EditFavoriteListPhotosAdapter.PictureHolder> {
-        private List<Bitmap> photos;
-        private LayoutInflater inflater;
-        private List<String> selected;
-        private final OnStartDragListener mDragStartListener;
-
-
-        public EditFavoriteListPhotosAdapter(OnStartDragListener mDragStartListener) {
-            photos = new LinkedList<>();
-            selected = new LinkedList<>();
-            inflater = LayoutInflater.from(getContext());
-            this.mDragStartListener = mDragStartListener;
+        public void clearChanges () {
+            photoItems.clear();
+            updateData();
         }
 
-        @NonNull
         @Override
-        public PictureHolder onCreateViewHolder(@NonNull ViewGroup viewGroup, int position) {
-            return new PictureHolder(inflater.inflate(R.layout.photo_fragment, viewGroup, false));
+        public void onDestroy () {
+            super.onDestroy();
+            try (Realm realm = Realm.getDefaultInstance()) {
+                realm.executeTransaction(realm1 -> realm.copyToRealmOrUpdate(photoItems));
+            }
         }
 
+        public class EditFavoriteListPhotosAdapter extends RecyclerView.Adapter<EditFavoriteListPhotosAdapter.PictureHolder> {
+            private List<Bitmap> photos;
+            private LayoutInflater inflater;
+            private List<String> selected;
+            private final OnStartDragListener mDragStartListener;
 
-        @SuppressLint("ClickableViewAccessibility")
-        @RequiresApi(api = Build.VERSION_CODES.KITKAT)
-        @Override
-        public void onBindViewHolder(@NonNull final PictureHolder viewHolder, int position) {
-            final String itemTouched = photosDir.get(position);
-            viewHolder.photo.setImageBitmap(photos.get(position));
-            if (selected.contains(itemTouched)) {
-                highlightView(viewHolder);
-            } else {
-                unhighlightView(viewHolder);
+
+            public EditFavoriteListPhotosAdapter(OnStartDragListener mDragStartListener) {
+                photos = new LinkedList<>();
+                selected = new LinkedList<>();
+                inflater = LayoutInflater.from(getContext());
+                this.mDragStartListener = mDragStartListener;
             }
-            if (selected.size() > 0) {
-                isItemClicked = true;
-            } else {
-               isItemClicked = false;
+
+            @NonNull
+            @Override
+            public PictureHolder onCreateViewHolder(@NonNull ViewGroup viewGroup, int position) {
+                return new PictureHolder(inflater.inflate(R.layout.photo_fragment, viewGroup, false));
             }
-            getActivity().invalidateOptionsMenu();
-            viewHolder.photo.setOnClickListener(V -> {
-                viewHolder.photo.setOnTouchListener((v, event) -> {
-                    if (event.getActionMasked() == MotionEvent.ACTION_DOWN) {
-                        mDragStartListener.onStartDrag(viewHolder);
-                    }
-                    return true;
-                });
-            });
-            viewHolder.photo.setOnClickListener(view -> {
-                PhotoItem photoItemToDelete = photoItems.get(position);
+
+
+            @SuppressLint("ClickableViewAccessibility")
+            @RequiresApi(api = Build.VERSION_CODES.KITKAT)
+            @Override
+            public void onBindViewHolder(@NonNull final PictureHolder viewHolder, int position) {
+                final String itemTouched = photosDir.get(position);
+                viewHolder.photo.setImageBitmap(photos.get(position));
                 if (selected.contains(itemTouched)) {
-                    selected.remove(itemTouched);
-                    deletedPhotoItems.remove(photoItemToDelete);
-                    unhighlightView(viewHolder);
-                } else {
-                    selected.add(itemTouched);
-                    deletedPhotoItems.add(photoItemToDelete);
                     highlightView(viewHolder);
-                }
-
-                if (selected.size() > 0) {
-                    isItemClicked = true;
                 } else {
-                    isItemClicked = false;
+                    unhighlightView(viewHolder);
                 }
+                isItemClicked = selected.size() > 0;
                 getActivity().invalidateOptionsMenu();
-            });
-        }
 
+                viewHolder.photo.setOnClickListener(V -> {
+                    viewHolder.photo.setOnTouchListener((v, event) -> {
+                        if (event.getActionMasked() == MotionEvent.ACTION_DOWN) {
+                            mDragStartListener.onStartDrag(viewHolder);
+                        }
+                        return true;
+                    });
+                });
+                viewHolder.photo.setOnClickListener(view -> {
+                    PhotoItem photoItemToDelete = photoItems.get(position);
+                    if (selected.contains(itemTouched)) {
+                        selected.remove(itemTouched);
+                        deletedPhotoItems.remove(photoItemToDelete);
+                        unhighlightView(viewHolder);
+                    } else {
+                        selected.add(itemTouched);
+                        deletedPhotoItems.add(photoItemToDelete);
+                        highlightView(viewHolder);
+                    }
 
-        @RequiresApi(api = Build.VERSION_CODES.KITKAT)
-        private void highlightView(EditFavoriteListPhotosAdapter.PictureHolder holder) {
-            holder.photo.setBackgroundColor(ContextCompat.getColor(Objects.requireNonNull(getContext()), R.color.colorPrimaryDark));
-            holder.photo.setPadding(10, 10, 10, 10);
-        }
-
-        @RequiresApi(api = Build.VERSION_CODES.KITKAT)
-        private void unhighlightView(EditFavoriteListPhotosAdapter.PictureHolder holder) {
-            holder.photo.setBackgroundColor(ContextCompat.getColor(Objects.requireNonNull(getContext()), android.R.color.transparent));
-            holder.photo.setPadding(-10, -10, -10, -10);
-        }
-
-        @Override
-        public int getItemCount() {
-            return photos.size();
-        }
-
-        void setPhotos() {
-            photos.clear();
-            photos.addAll(getPhotosFromPhone());
-            notifyDataSetChanged();
-        }
-
-        public void onItemMove(int fromPosition, int toPosition) {
-            if (fromPosition < toPosition) {
-                for (int i = fromPosition; i < toPosition; i++) {
-                    Collections.swap(photos, i, i + 1);
-                }
-            } else {
-                for (int i = fromPosition; i > toPosition; i--) {
-                    Collections.swap(photos, i, i - 1);
-                }
+                    isItemClicked = selected.size() > 0;
+                    getActivity().invalidateOptionsMenu();
+                });
             }
-            updateItemsPositions(fromPosition, toPosition);
-            notifyItemMoved(fromPosition, toPosition);
-        }
 
-        private void updateItemsPositions(int startPosition, int targetPosition) {
-            photoItems.get(startPosition).setPosition(targetPosition);
-            photoItems.get(targetPosition).setPosition(startPosition);
-            PhotoItem photoItem = photoItems.get(startPosition);
-            photoItems.set(startPosition, photoItems.get(targetPosition));
-            photoItems.set(targetPosition, photoItem);
-        }
 
-        private List<String> getSelected() {
-            return selected;
-        }
+            @RequiresApi(api = Build.VERSION_CODES.KITKAT)
+            private void highlightView(EditFavoriteListPhotosAdapter.PictureHolder holder) {
+                holder.photo.setBackgroundColor(ContextCompat.getColor(Objects.requireNonNull(getContext()), R.color.colorPrimaryDark));
+                holder.photo.setPadding(10, 10, 10, 10);
+            }
 
-        void clearData(){
-            selected.clear();
-            deletedPhotoItems.clear();
-        }
+            @RequiresApi(api = Build.VERSION_CODES.KITKAT)
+            private void unhighlightView(EditFavoriteListPhotosAdapter.PictureHolder holder) {
+                holder.photo.setBackgroundColor(ContextCompat.getColor(Objects.requireNonNull(getContext()), android.R.color.transparent));
+                holder.photo.setPadding(0, 0, 0, 0);
+            }
 
-        private class PictureHolder extends RecyclerView.ViewHolder {
-            ImageView photo;
+            @Override
+            public int getItemCount() {
+                return photos.size();
+            }
 
-            PictureHolder(@NonNull View itemView) {
-                super(itemView);
-                photo = itemView.findViewById(R.id.photo_item);
+            void setPhotos() {
+                photos.clear();
+                photos.addAll(getPhotosFromPhone());
+                notifyDataSetChanged();
+            }
+
+            public void onItemMove(int fromPosition, int toPosition) {
+                if (fromPosition < toPosition) {
+                    for (int i = fromPosition; i < toPosition; i++) {
+                        Collections.swap(photos, i, i + 1);
+                    }
+                } else {
+                    for (int i = fromPosition; i > toPosition; i--) {
+                        Collections.swap(photos, i, i - 1);
+                    }
+                }
+                updateItemsPositions(fromPosition, toPosition);
+                notifyItemMoved(fromPosition, toPosition);
+            }
+
+            private void updateItemsPositions(int startPosition, int targetPosition) {
+                photoItems.get(startPosition).setPosition(targetPosition);
+                photoItems.get(targetPosition).setPosition(startPosition);
+                PhotoItem photoItem = photoItems.get(startPosition);
+                photoItems.set(startPosition, photoItems.get(targetPosition));
+                photoItems.set(targetPosition, photoItem);
+            }
+
+            private List<String> getSelected() {
+                return selected;
+            }
+
+            void clearData() {
+                selected.clear();
+                deletedPhotoItems.clear();
+            }
+
+            private class PictureHolder extends RecyclerView.ViewHolder {
+                ImageView photo;
+
+                PictureHolder(@NonNull View itemView) {
+                    super(itemView);
+                    photo = itemView.findViewById(R.id.photo_item);
+                }
             }
         }
     }
-}

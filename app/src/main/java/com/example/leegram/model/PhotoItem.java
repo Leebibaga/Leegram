@@ -9,7 +9,7 @@ public class PhotoItem extends RealmObject {
 
     @PrimaryKey
     private String pictureURL;
-    private String date;
+    private String date; // todo: change to long date
     private String api;
     private String category;
     private String picture;

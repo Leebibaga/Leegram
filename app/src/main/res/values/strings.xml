@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">Leegram</string>
+    <string name="folder_id">folderID</string>
 </resources>

@@ -5,6 +5,7 @@ import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
+import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.view.LayoutInflater;
@@ -15,15 +16,16 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
 
+import com.example.leegram.Const;
 import com.example.leegram.R;
 import com.example.leegram.activities.MainActivity;
-import com.example.leegram.model.FolderItem;
+import com.example.leegram.model.Folder;
 
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Objects;
 
 import io.realm.Realm;
+import io.realm.RealmConfiguration;
 import io.realm.RealmResults;
 
 public class FolderListFragment extends Fragment {
@@ -37,7 +39,7 @@ public class FolderListFragment extends Fragment {
 
     //data
     private String defaultFolder;
-    private List<FolderItem> folderItems = new LinkedList<>();
+    private List<Folder> folderItems = new LinkedList<>();
 
     //Adapter
     private FolderListFolderAdapter folderListFolderAdapter;
@@ -55,10 +57,10 @@ public class FolderListFragment extends Fragment {
     }
 
     @Override
-    public void onPrepareOptionsMenu(Menu menu) {
-        MenuInflater inflater = getActivity().getMenuInflater();
+    public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
+//        super.onCreateOptionsMenu(menu, inflater);
         inflater.inflate(R.menu.menu_folder, menu);
-        super.onPrepareOptionsMenu(menu);
+        ((MainActivity) getActivity()).getSupportActionBar().setTitle(Const.APP_NAME);
     }
 
     @Override
@@ -79,19 +81,17 @@ public class FolderListFragment extends Fragment {
             rootView = inflater.inflate(R.layout.folder_list_fragment, container, false);
             folderListFolderAdapter = new FolderListFolderAdapter();
             setUI();
+            getFoldersNames();
+            if (folderItems.isEmpty()) {
+                noFolderMessage.setVisibility(View.VISIBLE);
+                folderList.setVisibility(View.GONE);
+            } else if (getDefaultFolder()) {
+                navigateToFolder(defaultFolder);
+            } else {
+                noFolderMessage.setVisibility(View.GONE);
+                folderList.setVisibility(View.VISIBLE);
+            }
         }
-        Objects.requireNonNull(getActivity()).invalidateOptionsMenu();
-        getFoldersNames();
-        if (folderItems.isEmpty()) {
-            noFolderMessage.setVisibility(View.VISIBLE);
-            folderList.setVisibility(View.GONE);
-        } else if (getDefaultFolder()) {
-            navigateToFolder(defaultFolder);
-        } else {
-            noFolderMessage.setVisibility(View.GONE);
-            folderList.setVisibility(View.VISIBLE);
-        }
-
         return rootView;
     }
 
@@ -106,42 +106,49 @@ public class FolderListFragment extends Fragment {
 
     private void getFoldersNames() {
         try (Realm realm = Realm.getDefaultInstance()) {
-            RealmResults<FolderItem> realmResults = realm.where(FolderItem.class)
+            RealmResults<Folder> realmResults = realm.where(Folder.class)
                     .findAll();
             folderItems.clear();
             folderItems.addAll(realm.copyFromRealm(realmResults));
         }
     }
 
+//    private void getFoldersNames() {
+//        RealmConfiguration config = new RealmConfiguration
+//                .Builder()
+//                .deleteRealmIfMigrationNeeded()
+//                .build();
+//        Realm realm = Realm.getInstance(config);
+//            RealmResults<Folder> realmResults = realm.where(Folder.class)
+//                    .findAll();
+//            folderItems.clear();
+//            folderItems.addAll(realm.copyFromRealm(realmResults));
+//
+//    }
     private boolean getDefaultFolder() {
         try (Realm realm = Realm.getDefaultInstance()) {
-            FolderItem folderItem = realm.where(FolderItem.class)
+            Folder folderItem = realm.where(Folder.class)
                     .equalTo("isDefault", true)
                     .findFirst();
             if (folderItem != null) {
                 defaultFolder = folderItem.getId();
                 return true;
+            } else {
+                return false;
             }
         }
-        return false;
     }
 
     private void navigateToFolder(String folderId) {
         Bundle bundle = new Bundle();
-        bundle.putString("folderId", folderId);
+        bundle.putString(Const.FOLDER_ID, folderId);
         FolderFragment folderFragment = new FolderFragment();
         folderFragment.setArguments(bundle);
-        getActivity().getSupportFragmentManager().beginTransaction()
-                .replace(R.id.main_activity_container, folderFragment)
-                .addToBackStack(folderId)
-                .commit();
+        ((MainActivity) getActivity()).showOtherFragment(folderFragment);
     }
 
     private void navigateToCreateNewFolderScreen(){
-        getActivity().getSupportFragmentManager().beginTransaction()
-                .replace(R.id.main_activity_container, new CreateNewFolderFragment())
-                .addToBackStack(CREATE_FOLDER)
-                .commit();
+        ((MainActivity) getActivity()).showOtherFragment(new CreateNewFolderFragment());
     }
 
     public class FolderListFolderAdapter extends RecyclerView.Adapter<FolderListFolderAdapter.FolderListHolder> {

@@ -8,7 +8,6 @@
         android:icon="@drawable/ic_add"
         android:orderInCategory="200"
         android:title="Edit"
-        android:visible="false"
         app:showAsAction="ifRoom"
         tools:ignore="HardcodedText" />
 </menu>

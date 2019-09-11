@@ -1,7 +1,6 @@
 package com.example.leegram.fragments;
 
 import android.annotation.SuppressLint;
-import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.os.Build;
@@ -10,6 +9,7 @@ import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.annotation.RequiresApi;
 import android.support.v4.app.Fragment;
+import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.StaggeredGridLayoutManager;
@@ -22,21 +22,18 @@ import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.TextView;
 
+import com.example.leegram.Const;
 import com.example.leegram.R;
 import com.example.leegram.activities.MainActivity;
-import com.example.leegram.model.FolderItem;
+import com.example.leegram.model.Folder;
 import com.example.leegram.model.PhotoItem;
 
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Objects;
 
 import io.realm.Realm;
-import io.realm.RealmList;
 
 public class FolderFragment extends Fragment {
-
-    private final String SEARCH_TAG = "search_fragment";
 
     public interface OnLongClickPhotoListener {
         void onPhotoClicked(String itemClicked);
@@ -49,19 +46,12 @@ public class FolderFragment extends Fragment {
     private ImageView enlargedPhoto;
 
     //data
-    private RealmList<PhotoItem> photoItems;
-    private FolderItem folderItem;
+    private List<PhotoItem> photoItems = new LinkedList<>();
     private List<String> photoDir = new LinkedList<>();
-    private OnLongClickPhotoListener mOnClickPhoto;
+    private String folderName;
 
     //adapter
     private FavoritePhotosAdapter favoritePhotosAdapter;
-
-    @Override
-    public void onAttach(Context context) {
-        super.onAttach(context);
-        mOnClickPhoto = (OnLongClickPhotoListener) context;
-    }
 
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
@@ -70,10 +60,12 @@ public class FolderFragment extends Fragment {
     }
 
     @Override
-    public void onPrepareOptionsMenu(Menu menu) {
-        MenuInflater inflater = getActivity().getMenuInflater();
+    public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
+        super.onCreateOptionsMenu(menu, inflater);
         inflater.inflate(R.menu.menu_folder, menu);
-        super.onPrepareOptionsMenu(menu);
+        ((AppCompatActivity) getActivity()).getSupportActionBar().setTitle(folderName);
+        ((AppCompatActivity) getActivity()).getSupportActionBar().setDisplayShowTitleEnabled(true);
+        ((AppCompatActivity) getActivity()).getSupportActionBar().setDisplayShowCustomEnabled(false);
     }
 
     @Override
@@ -81,7 +73,7 @@ public class FolderFragment extends Fragment {
         int itemId = item.getItemId();
         switch(itemId) {
             case R.id.add:
-                moveToSearchScreen();
+                navigateToSearchScreen();
                 break;
         }
         return super.onOptionsItemSelected(item);
@@ -116,7 +108,6 @@ public class FolderFragment extends Fragment {
             noDataText.setVisibility(View.GONE);
             favoritePhotos.setVisibility(View.VISIBLE);
         }
-        Objects.requireNonNull(getActivity()).invalidateOptionsMenu();
     }
 
     private void findViews() {
@@ -144,30 +135,37 @@ public class FolderFragment extends Fragment {
     }
 
     private void updateData() {
-        Realm realm = Realm.getDefaultInstance();
-        folderItem = realm
-                .where(FolderItem.class)
-                .equalTo("id", this.getArguments().getString("folderId"))
-                .findFirst();
-        photoItems = folderItem.getPhotoItems();
-        setPhotosURLs();
-        favoritePhotosAdapter.setPhotos();
-        photoItems.addChangeListener((photoItems1, changeSet) -> {
-            photoItems.sort("position");
+        try (Realm realm = Realm.getDefaultInstance()) {
+            Folder folderItem = realm
+                    .where(Folder.class)
+                    .equalTo("id", getArguments().getString(Const.FOLDER_ID))
+                    .findFirst();
+            folderName = folderItem.getFolderName();
+            photoItems.clear();
+            photoItems.addAll(realm.copyFromRealm(folderItem.getPhotoItems().sort("position")));
             setPhotosURLs();
             favoritePhotosAdapter.setPhotos();
-        });
+        }
     }
 
-    private void moveToSearchScreen() {
-        getActivity().getSupportFragmentManager().beginTransaction()
-                .replace(R.id.main_activity_container, new SearchPhotosFragment())
-                .addToBackStack(SEARCH_TAG)
-                .commit();
+    private void navigateToSearchScreen() {
+        Bundle bundle = new Bundle();
+        bundle.putString(Const.FOLDER_ID, getArguments().getString(Const.FOLDER_ID));
+        SearchPhotosFragment searchPhotosFragment = new SearchPhotosFragment();
+        searchPhotosFragment.setArguments(bundle);
+        ((MainActivity) getActivity()).showOtherFragment(searchPhotosFragment);
+    }
+
+    private void navigateToEditMode(String photoDir) {
+        Bundle bundle = new Bundle();
+        bundle.putString(Const.FOLDER_ID, getArguments().getString(Const.FOLDER_ID));
+        bundle.putString(Const.PHOTO_DIR, photoDir);
+        EditFavoriteListFragment editFavoriteListFragment = new EditFavoriteListFragment();
+        editFavoriteListFragment.setArguments(bundle);
+        ((MainActivity) getActivity()).showOtherFragment(editFavoriteListFragment);
     }
 
     public class FavoritePhotosAdapter extends RecyclerView.Adapter<FavoritePhotosAdapter.PhotoHolder> {
-
         private List<Bitmap> photos;
         private LayoutInflater inflater;
 
@@ -193,7 +191,7 @@ public class FolderFragment extends Fragment {
                 favoritePhotos.setVisibility(View.GONE);
             });
             viewHolder.photo.setOnLongClickListener(view -> {
-                mOnClickPhoto.onPhotoClicked(photoDir.get(position));
+                navigateToEditMode(photoDir.get(position));
                 return true;
             });
 

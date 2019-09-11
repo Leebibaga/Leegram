@@ -5,17 +5,18 @@ import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
+import android.support.v7.app.AppCompatActivity;
 import android.view.LayoutInflater;
-import android.view.Menu;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.RadioButton;
 
+import com.example.leegram.Const;
 import com.example.leegram.R;
 import com.example.leegram.activities.MainActivity;
-import com.example.leegram.model.FolderItem;
+import com.example.leegram.model.Folder;
 
 import java.util.Objects;
 import java.util.UUID;
@@ -37,19 +38,12 @@ public class CreateNewFolderFragment extends Fragment {
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setHasOptionsMenu(true);
-    }
-
-    @Override
-    public void onPrepareOptionsMenu(Menu menu) {
-        super.onPrepareOptionsMenu(menu);
-        getActivity().getActionBar().setTitle("Create New Folder");
-
     }
 
     @Override
     public void onAttach(Context context) {
         super.onAttach(context);
+        ((AppCompatActivity) getActivity()).getSupportActionBar().setTitle("Create New Folder");
     }
 
     @Nullable
@@ -74,24 +68,21 @@ public class CreateNewFolderFragment extends Fragment {
     }
 
     public void setNewFolder(){
-        FolderItem folderItem = new FolderItem();
+        Folder folderItem = new Folder();
         folderId = UUID.randomUUID().toString();
         folderItem.setFolderName(enterNewFolderName.getText().toString());
-        folderItem.setDefault(defaultToggle.isSelected());
+        folderItem.setDefault(defaultToggle.isChecked());
         folderItem.setId(folderId);
         try (Realm realm = Realm.getDefaultInstance()){
-            realm.executeTransaction(realm1 -> realm.copyToRealmOrUpdate(folderItem));
+            realm.executeTransaction(realm1 -> realm1.copyToRealmOrUpdate(folderItem));
         }
     }
 
     private void navigateToFolder() {
         Bundle bundle = new Bundle();
-        bundle.putString("folderId", folderId);
+        bundle.putString(Const.FOLDER_ID, folderId);
         FolderFragment folderFragment = new FolderFragment();
         folderFragment.setArguments(bundle);
-        getActivity().getSupportFragmentManager().beginTransaction()
-                .replace(R.id.main_activity_container, folderFragment)
-                .addToBackStack(null)
-                .commit();
+        ((MainActivity) getActivity()).showOtherFragment(folderFragment, true);
     }
 }

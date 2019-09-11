@@ -20,7 +20,7 @@ import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
 
-public class PhotosDownloader extends AsyncTask<String, Bitmap, List<Bitmap>> {
+public class PhotosDownloader {
 
     private String TOKEN = "210590bd55fa23badf70b162392aa62e3bc62b7029e01eb0f9db858abc0c7cc6";
     Call<UnsplashedPhotos> getResults;
@@ -30,47 +30,26 @@ public class PhotosDownloader extends AsyncTask<String, Bitmap, List<Bitmap>> {
         void setIDs(List<String> ids);
     }
 
-    private LinkedList<Bitmap> downloadedPhotos = new LinkedList<>();
-    private LinkedList<String> photosID = new LinkedList<>();
+    private LinkedList<Bitmap> downloadedPhotos;
+    private LinkedList<String> photosID;
     private PhotoDownloadCallback finishDownloadingPhotos;
-    private int pageNumber = 1;
+    private int pageNumber;
+    private DownloadPhotos downloadPhotos;
+    private boolean isLastPage = false;
 
 
     public PhotosDownloader(PhotoDownloadCallback callback) {
         this.finishDownloadingPhotos = callback;
+        downloadedPhotos = new LinkedList<>();
+        photosID = new LinkedList<>();
+        pageNumber = 1;
     }
 
-    @Override
-    protected void onPreExecute() {
-    }
 
-    @Override
-    protected List<Bitmap> doInBackground(String... strings) {
-        for (String photoUrl : strings) {
-            downloadedPhotos.add(downloadPhoto(photoUrl));
-            if (isCancelled()) {
-                break;
-            }
-        }
-        return downloadedPhotos;
-    }
 
-    @Override
-    protected void onProgressUpdate(Bitmap... values) {
-
-    }
-
-    @Override
-    protected void onPostExecute(List<Bitmap> bitmap) {
-        finishDownloadingPhotos.setImages(bitmap);
-        finishDownloadingPhotos.setIDs(photosID);
-        finishDownloadingPhotos = null;
-        photosID = null;
-    }
-
-    public void start(String query) {
+    public boolean start(String query) {
         SplashedApi apiService = new ApiClient().getClient().create(SplashedApi.class);
-        getResults = apiService.getPhotos(TOKEN, query, pageNumber, 20);
+        getResults = apiService.getPhotos(TOKEN, query, pageNumber, 10);
         getResults.enqueue(new Callback<UnsplashedPhotos>() {
             @Override
             public void onResponse(@NonNull Call<UnsplashedPhotos> call, @NonNull Response<UnsplashedPhotos> response) {
@@ -81,8 +60,10 @@ public class PhotosDownloader extends AsyncTask<String, Bitmap, List<Bitmap>> {
                         photoURL.add(photo.getURLs().getRegular());
                         photosID.add(photo.getId());
                     }
-                    execute(photoURL.toArray(new String[photos.size()]));
+                    downloadPhotos = new DownloadPhotos();
+                    downloadPhotos.execute(photoURL.toArray(new String[photos.size()]));
                     pageNumber++;
+                    isLastPage = pageNumber > response.body().getTotalPages();
                 }
             }
 
@@ -93,12 +74,15 @@ public class PhotosDownloader extends AsyncTask<String, Bitmap, List<Bitmap>> {
                 }
             }
         });
+        return isLastPage;
     }
 
     public void stop() {
         getResults.cancel();
-        cancel(true);
+        downloadPhotos.cancel(true);
     }
+
+
 
     private Bitmap downloadPhoto(String url) {
         URL photoURL = null;
@@ -112,6 +96,37 @@ public class PhotosDownloader extends AsyncTask<String, Bitmap, List<Bitmap>> {
             e.printStackTrace();
         }
         return null;
+    }
+
+     class DownloadPhotos extends AsyncTask<String, Bitmap, List<Bitmap>> {
+
+        @Override
+        protected void onPreExecute() {
+        }
+
+        @Override
+        protected List<Bitmap> doInBackground(String... strings) {
+            for (String photoUrl : strings) {
+                downloadedPhotos.add(downloadPhoto(photoUrl));
+                if (isCancelled()) {
+                    break;
+                }
+            }
+            return downloadedPhotos;
+        }
+
+        @Override
+        protected void onProgressUpdate(Bitmap... values) {
+
+        }
+
+        @Override
+        protected void onPostExecute(List<Bitmap> bitmap) {
+            finishDownloadingPhotos.setImages(bitmap);
+            finishDownloadingPhotos.setIDs(photosID);
+            photosID.clear();
+        }
+
     }
 
 

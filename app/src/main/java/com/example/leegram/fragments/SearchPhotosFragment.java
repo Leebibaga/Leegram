@@ -13,6 +13,8 @@ import android.support.annotation.Nullable;
 import android.support.annotation.RequiresApi;
 import android.support.v4.app.Fragment;
 import android.support.v4.content.ContextCompat;
+import android.support.v7.app.ActionBar;
+import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.StaggeredGridLayoutManager;
@@ -27,10 +29,10 @@ import android.view.ViewGroup;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.EditText;
 import android.widget.ImageView;
-import android.widget.ProgressBar;
 import android.widget.Toast;
 
-import com.example.leegram.model.FolderItem;
+import com.example.leegram.Const;
+import com.example.leegram.model.Folder;
 import com.example.leegram.others.PhotosDownloader;
 import com.example.leegram.R;
 import com.example.leegram.model.PhotoItem;
@@ -49,27 +51,25 @@ import io.realm.RealmList;
 
 public class SearchPhotosFragment extends Fragment implements PhotosDownloader.PhotoDownloadCallback {
 
-    public interface OnFinishedSearchListener {
-        void onDownloadFinished();
-    }
-
     // view
     private View rootView;
     private RecyclerView listOfPhotos;
     private View skeletonLayout;
-    private ProgressBar spinner;
+    private View spinner;
     private EditText searchPhoto;
+    private StaggeredGridLayoutManager staggeredGridLayoutManager;
 
     // data
-    private OnFinishedSearchListener mFinishedSearchListener;
     private PhotosDownloader photosDownloader;
     private List<String> photoIDs = new LinkedList<>();
     private Runnable delayCounter;
     private Handler handleSpinner = new Handler();
     private boolean isItemClicked = false;
+    private boolean isLoading = false;
+    private boolean isLastPage = false;
 
     // adapters
-    private SearchPhotosListAdapter searchPhotosListAdapter;
+    private PhotoSearchListAdapter searchPhotosListAdapter;
 
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container,
@@ -81,8 +81,41 @@ public class SearchPhotosFragment extends Fragment implements PhotosDownloader.P
             skeletonLayout = rootView.findViewById(R.id.parentShimmerLayout);
             initUI();
         }
+        toggleSoftKeyboard(true);
+        initScrollListener();
         Objects.requireNonNull(getActivity()).invalidateOptionsMenu();
         return rootView;
+    }
+
+    private void initScrollListener() {
+        listOfPhotos.addOnScrollListener(new RecyclerView.OnScrollListener() {
+            @Override
+            public void onScrollStateChanged(@NonNull RecyclerView recyclerView, int newState) {
+                super.onScrollStateChanged(recyclerView, newState);
+            }
+
+            @Override
+            public void onScrolled(@NonNull RecyclerView recyclerView, int dx, int dy) {
+                super.onScrolled(recyclerView, dx, dy);
+                int[] lastPlaceShown = staggeredGridLayoutManager.findLastCompletelyVisibleItemPositions(null);
+                if (!isLoading && !photoIDs.isEmpty() && !isLastPage) {
+                    if (staggeredGridLayoutManager != null && lastPlaceShown[lastPlaceShown.length -1] >=  photoIDs.size() - 1) {
+                        photosDownloader.start(searchPhoto.getText().toString());
+                        isLoading = true;
+                    }
+                }
+            }
+        });
+    }
+
+    @SuppressLint("NewApi")
+    private void initUI() {
+        listOfPhotos.setVisibility(View.GONE);
+        searchPhotosListAdapter = new PhotoSearchListAdapter();
+        staggeredGridLayoutManager =
+                new StaggeredGridLayoutManager(2, LinearLayoutManager.VERTICAL);
+        listOfPhotos.setLayoutManager(staggeredGridLayoutManager);
+        listOfPhotos.setAdapter(searchPhotosListAdapter);
     }
 
     @Override
@@ -91,22 +124,26 @@ public class SearchPhotosFragment extends Fragment implements PhotosDownloader.P
         setHasOptionsMenu(true);
     }
 
+    @Override
+    public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
+        inflater.inflate(R.menu.menu_search, menu);
+        ActionBar actionBar = ((AppCompatActivity) Objects.requireNonNull(getActivity())).getSupportActionBar();
+        Objects.requireNonNull(actionBar).setDisplayShowCustomEnabled(true);
+        actionBar.setDisplayShowTitleEnabled(false);
+        actionBar.setCustomView(R.layout.search_bar);
+        searchPhoto = actionBar.getCustomView().findViewById(R.id.search_photos_bar);
+        searchBarAction();
+        super.onCreateOptionsMenu(menu, inflater);
+    }
 
     @Override
     public void onPrepareOptionsMenu(Menu menu) {
-        MenuInflater inflater = getActivity().getMenuInflater();
-        inflater.inflate(R.menu.menu_search, menu);
-        getActivity().getActionBar().setDisplayShowCustomEnabled(true);
-        getActivity().getActionBar().setDisplayShowTitleEnabled(false);
-        getActivity().getActionBar().setCustomView(R.layout.search_bar);
-        searchPhoto = getActivity().getActionBar().getCustomView().findViewById(R.id.search_photos_bar);
-        searchBarAction();
-        if (isItemClicked){
-            menu.getItem(R.id.clear_search).setVisible(true);
-            menu.getItem(R.id.add_chosen_photos).setVisible(true);
+        if (isItemClicked) {
+            menu.findItem(R.id.clear_search).setVisible(true);
+            menu.findItem(R.id.add_chosen_photos).setVisible(true);
         } else {
-            menu.getItem(R.id.clear_search).setVisible(false);
-            menu.getItem(R.id.add_chosen_photos).setVisible(false);
+            menu.findItem(R.id.clear_search).setVisible(false);
+            menu.findItem(R.id.add_chosen_photos).setVisible(false);
         }
         super.onPrepareOptionsMenu(menu);
     }
@@ -114,7 +151,7 @@ public class SearchPhotosFragment extends Fragment implements PhotosDownloader.P
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         int itemId = item.getItemId();
-        switch(itemId) {
+        switch (itemId) {
             case R.id.add_chosen_photos:
                 savePhotos();
                 break;
@@ -127,7 +164,6 @@ public class SearchPhotosFragment extends Fragment implements PhotosDownloader.P
 
     private void searchBarAction() {
         searchPhoto.requestFocus();
-        toggleSoftKeyboard(true);
         searchPhoto.addTextChangedListener(new TextWatcher() {
             @Override
             public void beforeTextChanged(CharSequence s, int start, int count, int after) {
@@ -162,24 +198,13 @@ public class SearchPhotosFragment extends Fragment implements PhotosDownloader.P
         }
     }
 
-    @SuppressLint("NewApi")
-    private void initUI() {
-        searchPhotosListAdapter = new SearchPhotosListAdapter();
-        StaggeredGridLayoutManager staggeredGridLayoutManager =
-                new StaggeredGridLayoutManager(2, LinearLayoutManager.VERTICAL);
-        listOfPhotos.setLayoutManager(staggeredGridLayoutManager);
-        listOfPhotos.setAdapter(searchPhotosListAdapter);
-    }
-
     public void downloadPhotos(String text) {
-        listOfPhotos.setVisibility(View.INVISIBLE);
         skeletonLayout.setVisibility(View.VISIBLE);
         if (photosDownloader != null) {
             photosDownloader.stop();
         }
         photosDownloader = new PhotosDownloader(this);
-        photosDownloader.start(text);
-
+        isLastPage = photosDownloader.start(text);
     }
 
     public void clearChoices() {
@@ -190,21 +215,21 @@ public class SearchPhotosFragment extends Fragment implements PhotosDownloader.P
     @Override
     public void onAttach(Context context) {
         super.onAttach(context);
-        mFinishedSearchListener = (OnFinishedSearchListener) context;
     }
 
     @Override
     public void setImages(List<Bitmap> downloadedPhotos) {
-        mFinishedSearchListener.onDownloadFinished();
+        toggleSoftKeyboard(false);
         skeletonLayout.setVisibility(View.GONE);
         listOfPhotos.setVisibility(View.VISIBLE);
         searchPhotosListAdapter.setPhotos(downloadedPhotos);
         searchPhotosListAdapter.notifyDataSetChanged();
+        isLoading = false;
     }
 
     @Override
     public void setIDs(List<String> ids) {
-        searchPhotosListAdapter.setPhotosIDs(ids);
+        photoIDs.addAll(ids);
     }
 
     public void savePhotos() {
@@ -212,18 +237,21 @@ public class SearchPhotosFragment extends Fragment implements PhotosDownloader.P
         new PhotoDataSaving().execute();
     }
 
-    public void doneSavingPhotos(){
+    public void doneSavingPhotos() {
         spinner.setVisibility(View.GONE);
-        Objects.requireNonNull(getActivity()).onBackPressed();
+        getActivity().onBackPressed();
     }
 
-    class SearchPhotosListAdapter extends RecyclerView.Adapter<SearchPhotosListAdapter.PictureHolder> {
+    class PhotoSearchListAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
+
+        private final int VIEW_TYPE_IMAGE = 0;
+        private final int VIEW_TYPE_LOADING = 1;
 
         private List<Bitmap> photos;
         private List<String> selected;
         private LayoutInflater inflater;
 
-        SearchPhotosListAdapter() {
+        PhotoSearchListAdapter() {
             photos = new LinkedList<>();
             selected = new LinkedList<>();
             inflater = LayoutInflater.from(getContext());
@@ -231,38 +259,49 @@ public class SearchPhotosFragment extends Fragment implements PhotosDownloader.P
 
         @NonNull
         @Override
-        public PictureHolder onCreateViewHolder(@NonNull ViewGroup viewGroup, int position) {
-            return new PictureHolder(inflater.inflate(R.layout.photo_fragment, viewGroup, false));
+        public RecyclerView.ViewHolder onCreateViewHolder(@NonNull ViewGroup viewGroup, int viewType) {
+            if(viewType == VIEW_TYPE_IMAGE) {
+                return new PictureHolder(inflater.inflate(R.layout.photo_fragment, viewGroup, false));
+            } else {
+                return new LoadingViewHolder(inflater.inflate(R.layout.lazy_loading_progress_bar, viewGroup, false));
+            }
+        }
+
+        @Override
+        public int getItemViewType(int position) {
+            return position + 1 == getItemCount() ? VIEW_TYPE_LOADING : VIEW_TYPE_IMAGE;
         }
 
         @RequiresApi(api = Build.VERSION_CODES.KITKAT)
         @Override
-        public void onBindViewHolder(@NonNull final PictureHolder pictureHolder, int position) {
-            final String itemTouched = photoIDs.get(position);
-            pictureHolder.photo.setImageBitmap(photos.get(position));
-            if (selected.contains(itemTouched)) {
-                highlightView(pictureHolder);
-            } else {
-                unhighlightView(pictureHolder);
+        public void onBindViewHolder(@NonNull final RecyclerView.ViewHolder viewHolder, int position) {
+            if(viewHolder instanceof PictureHolder) {
+                populateItemRows((PictureHolder) viewHolder, position);
             }
+        }
 
-            pictureHolder.photo.setOnClickListener(view -> {
+        @RequiresApi(api = Build.VERSION_CODES.KITKAT)
+        private void populateItemRows(PictureHolder viewHolder, int position) {
+            final String itemTouched = photoIDs.get(position);
+            viewHolder.photo.setImageBitmap(photos.get(position));
+            if (selected.contains(itemTouched)) {
+                highlightView(viewHolder);
+            } else {
+                unhighlightView(viewHolder);
+            }
+            viewHolder.photo.setOnClickListener(view -> {
                 if (selected.contains(itemTouched)) {
-                    unhighlightView(pictureHolder);
+                    unhighlightView(viewHolder);
                     selected.remove(itemTouched);
                 } else {
-                    highlightView(pictureHolder);
+                    highlightView(viewHolder);
                     selected.add(itemTouched);
                 }
 
-                if (selected.size() > 0) {
-                    isItemClicked = true;
-                    Objects.requireNonNull(getActivity()).invalidateOptionsMenu();
-                } else {
-                    isItemClicked = false;
-                    Objects.requireNonNull(getActivity()).invalidateOptionsMenu();
-                }
+                Objects.requireNonNull(getActivity()).invalidateOptionsMenu();
+                isItemClicked = selected.size() > 0;
             });
+
         }
 
         @RequiresApi(api = Build.VERSION_CODES.KITKAT)
@@ -274,12 +313,15 @@ public class SearchPhotosFragment extends Fragment implements PhotosDownloader.P
         @RequiresApi(api = Build.VERSION_CODES.KITKAT)
         private void unhighlightView(PictureHolder holder) {
             holder.photo.setBackgroundColor(ContextCompat.getColor(Objects.requireNonNull(getContext()), android.R.color.transparent));
-            holder.photo.setPadding(-10, -10, -10, -10);
+            holder.photo.setPadding(0, 0, 0, 0);
         }
 
         @Override
         public int getItemCount() {
-            return photos.size();
+            if (isLastPage) {
+                return photos.size();
+            }
+            return photos.size() + 1;
         }
 
         void setPhotos(List<Bitmap> photos) {
@@ -294,60 +336,56 @@ public class SearchPhotosFragment extends Fragment implements PhotosDownloader.P
             return selected;
         }
 
-        void setPhotosIDs(List<String> ids) {
-            photoIDs = ids;
-        }
-
         private class PictureHolder extends RecyclerView.ViewHolder {
-
             ImageView photo;
-
             PictureHolder(@NonNull View itemView) {
                 super(itemView);
                 photo = itemView.findViewById(R.id.photo_item);
             }
         }
+
+        private class LoadingViewHolder extends RecyclerView.ViewHolder {
+            View progressBar;
+
+            LoadingViewHolder(@NonNull View itemView) {
+                super(itemView);
+                progressBar = itemView.findViewById(R.id.lazy_progress_bar);
+            }
+        }
     }
 
     public class PhotoDataSaving extends AsyncTask<Void, Void, Void> {
-
         @Override
         protected Void doInBackground(Void... voids) {
-            int maxPosition = (int) getMaxPosition() + 1;
-            List<PhotoItem> photoItems = new LinkedList<>();
-            List<String> selectedPhotos = searchPhotosListAdapter.getSelectedPhotos();
-            for (String string : selectedPhotos) {
-                final PhotoItem item = new PhotoItem();
-                item.setPictureURL(string);
-                int index = photoIDs.indexOf(string);
-                item.setPicture(savePhoto(searchPhotosListAdapter.getPhotos().get(index), photoIDs.get(index)));
-                DateFormat dateFormat = android.text.format.DateFormat.getDateFormat(getActivity().getApplicationContext());
-                item.setDate(dateFormat.format(new Date(System.currentTimeMillis())));
-                item.setPosition(maxPosition);
-                photoItems.add(item);
-            }
             try (Realm realm = Realm.getDefaultInstance()) {
-                FolderItem folderItem = realm.where(FolderItem.class).equalTo("id", "").findFirst();
-                Objects.requireNonNull(folderItem).setPhotoItems((RealmList<PhotoItem>) photoItems);
-                realm.executeTransaction(realm1 -> realm1.copyToRealmOrUpdate(folderItem));
+                Folder result = realm.where(Folder.class).equalTo("id", getArguments().getString(Const.FOLDER_ID)).findFirst();
+                long maxPosition;
+                if (result.getPhotoItems().isEmpty()) {
+                    maxPosition = 0;
+                } else {
+                    maxPosition = (long) result.getPhotoItems().max("position");
+                }
+                RealmList<PhotoItem> photoItems = new RealmList<>();
+                List<String> selectedPhotos = searchPhotosListAdapter.getSelectedPhotos();
+                for (String string : selectedPhotos) {
+                    maxPosition ++;
+                    final PhotoItem item = new PhotoItem();
+                    item.setPictureURL(string);
+                    int index = photoIDs.indexOf(string);
+                    item.setPicture(savePhoto(searchPhotosListAdapter.getPhotos().get(index), photoIDs.get(index)));
+                    DateFormat dateFormat = android.text.format.DateFormat.getDateFormat(getActivity().getApplicationContext());
+                    item.setDate(dateFormat.format(new Date(System.currentTimeMillis())));
+                    item.setPosition((int) maxPosition);
+                    photoItems.add(item);
+                }
+                realm.executeTransaction(realm1 -> {
+                    result.getPhotoItems().addAll(photoItems);
+                    realm1.copyToRealmOrUpdate(result);
+                });
             }
             return null;
         }
 
-        private long getMaxPosition() {
-            long maxPosition;
-            try (Realm realm = Realm.getDefaultInstance()) {
-                Number results = realm
-                        .where(PhotoItem.class)
-                        .max("position");
-                if (results == null) {
-                    maxPosition = 0;
-                } else {
-                    maxPosition = (long) results;
-                }
-            }
-            return maxPosition;
-        }
 
         private String savePhoto(Bitmap photo, String photoName) {
             ContextWrapper cw = new ContextWrapper(getActivity().getApplicationContext());
