@@ -6,7 +6,6 @@ import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 
 import com.example.leegram.R;
-import com.example.leegram.fragments.EditFavoriteListFragment;
 import com.example.leegram.fragments.FolderListFragment;
 
 

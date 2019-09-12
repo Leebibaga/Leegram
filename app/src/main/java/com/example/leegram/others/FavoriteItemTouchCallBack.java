@@ -4,14 +4,14 @@ import android.support.annotation.NonNull;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.helper.ItemTouchHelper;
 
-import com.example.leegram.fragments.EditFavoriteListFragment;
+import com.example.leegram.fragments.FolderFragment;
 
 public class FavoriteItemTouchCallBack extends ItemTouchHelper.Callback {
 
-    EditFavoriteListFragment.EditFavoriteListPhotosAdapter editFavoriteListPhotosAdapter;
+    FolderFragment.EditFavoriteListPhotosAdapter editFavoriteListPhotosAdapter;
 
 
-    public FavoriteItemTouchCallBack(EditFavoriteListFragment.EditFavoriteListPhotosAdapter editFavoriteListPhotosAdapter) {
+    public FavoriteItemTouchCallBack(FolderFragment.EditFavoriteListPhotosAdapter editFavoriteListPhotosAdapter) {
         this.editFavoriteListPhotosAdapter = editFavoriteListPhotosAdapter;
     }
 

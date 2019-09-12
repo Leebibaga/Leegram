@@ -28,26 +28,27 @@ public class PhotosDownloader {
     public interface PhotoDownloadCallback {
         void setImages(List<Bitmap> downloadedPhotos);
         void setIDs(List<String> ids);
+        void isLastPage(boolean lastPage);
+        void thereIsResults();
+
     }
 
     private LinkedList<Bitmap> downloadedPhotos;
     private LinkedList<String> photosID;
-    private PhotoDownloadCallback finishDownloadingPhotos;
+    private PhotoDownloadCallback downloadCallback;
     private int pageNumber;
     private DownloadPhotos downloadPhotos;
     private boolean isLastPage = false;
 
-
     public PhotosDownloader(PhotoDownloadCallback callback) {
-        this.finishDownloadingPhotos = callback;
+        this.downloadCallback = callback;
         downloadedPhotos = new LinkedList<>();
         photosID = new LinkedList<>();
         pageNumber = 1;
     }
 
 
-
-    public boolean start(String query) {
+    public void start(String query) {
         SplashedApi apiService = new ApiClient().getClient().create(SplashedApi.class);
         getResults = apiService.getPhotos(TOKEN, query, pageNumber, 10);
         getResults.enqueue(new Callback<UnsplashedPhotos>() {
@@ -60,10 +61,12 @@ public class PhotosDownloader {
                         photoURL.add(photo.getURLs().getRegular());
                         photosID.add(photo.getId());
                     }
-                    downloadPhotos = new DownloadPhotos();
-                    downloadPhotos.execute(photoURL.toArray(new String[photos.size()]));
                     pageNumber++;
                     isLastPage = pageNumber > response.body().getTotalPages();
+                    downloadPhotos = new DownloadPhotos();
+                    downloadPhotos.execute(photoURL.toArray(new String[photos.size()]));
+                } else {
+                    downloadCallback.thereIsResults();
                 }
             }
 
@@ -74,14 +77,14 @@ public class PhotosDownloader {
                 }
             }
         });
-        return isLastPage;
     }
 
     public void stop() {
         getResults.cancel();
-        downloadPhotos.cancel(true);
+        if (downloadPhotos != null) {
+            downloadPhotos.cancel(true);
+        }
     }
-
 
 
     private Bitmap downloadPhoto(String url) {
@@ -98,7 +101,7 @@ public class PhotosDownloader {
         return null;
     }
 
-     class DownloadPhotos extends AsyncTask<String, Bitmap, List<Bitmap>> {
+    class DownloadPhotos extends AsyncTask<String, Bitmap, List<Bitmap>> {
 
         @Override
         protected void onPreExecute() {
@@ -122,8 +125,9 @@ public class PhotosDownloader {
 
         @Override
         protected void onPostExecute(List<Bitmap> bitmap) {
-            finishDownloadingPhotos.setImages(bitmap);
-            finishDownloadingPhotos.setIDs(photosID);
+            downloadCallback.isLastPage(isLastPage);
+            downloadCallback.setImages(bitmap);
+            downloadCallback.setIDs(photosID);
             photosID.clear();
         }
 

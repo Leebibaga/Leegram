@@ -31,7 +31,7 @@ import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.Toast;
 
-import com.example.leegram.Const;
+import com.example.leegram.App_Configurations;
 import com.example.leegram.model.Folder;
 import com.example.leegram.others.PhotosDownloader;
 import com.example.leegram.R;
@@ -51,12 +51,16 @@ import io.realm.RealmList;
 
 public class SearchPhotosFragment extends Fragment implements PhotosDownloader.PhotoDownloadCallback {
 
+    private final int VIEW_TYPE_IMAGE = 0;
+    private final int VIEW_TYPE_LOADING = 1;
+
     // view
     private View rootView;
     private RecyclerView listOfPhotos;
     private View skeletonLayout;
     private View spinner;
     private EditText searchPhoto;
+    private View noSearchResult;
     private StaggeredGridLayoutManager staggeredGridLayoutManager;
 
     // data
@@ -76,9 +80,6 @@ public class SearchPhotosFragment extends Fragment implements PhotosDownloader.P
                              Bundle savedInstanceState) {
         if (rootView == null) {
             rootView = inflater.inflate(R.layout.fragment_search_photos, container, false);
-            spinner = rootView.findViewById(R.id.spinner);
-            listOfPhotos = rootView.findViewById(R.id.photos_list);
-            skeletonLayout = rootView.findViewById(R.id.parentShimmerLayout);
             initUI();
         }
         toggleSoftKeyboard(true);
@@ -98,10 +99,13 @@ public class SearchPhotosFragment extends Fragment implements PhotosDownloader.P
             public void onScrolled(@NonNull RecyclerView recyclerView, int dx, int dy) {
                 super.onScrolled(recyclerView, dx, dy);
                 int[] lastPlaceShown = staggeredGridLayoutManager.findLastCompletelyVisibleItemPositions(null);
-                if (!isLoading && !photoIDs.isEmpty() && !isLastPage) {
-                    if (staggeredGridLayoutManager != null && lastPlaceShown[lastPlaceShown.length -1] >=  photoIDs.size() - 1) {
+                int lastFullyVisibleItem = lastPlaceShown.length - 1;
+                if (!isLoading && !isLastPage && searchPhotosListAdapter != null) {
+                    if (staggeredGridLayoutManager != null &&
+                            searchPhotosListAdapter.getPhotos().get(lastPlaceShown[lastFullyVisibleItem]) == null) {
                         photosDownloader.start(searchPhoto.getText().toString());
                         isLoading = true;
+                        isLastPage = false;
                     }
                 }
             }
@@ -110,10 +114,15 @@ public class SearchPhotosFragment extends Fragment implements PhotosDownloader.P
 
     @SuppressLint("NewApi")
     private void initUI() {
+        spinner = rootView.findViewById(R.id.spinner);
+        listOfPhotos = rootView.findViewById(R.id.photos_list);
+        skeletonLayout = rootView.findViewById(R.id.parentShimmerLayout);
+        noSearchResult = rootView.findViewById(R.id.no_search_results);
         listOfPhotos.setVisibility(View.GONE);
         searchPhotosListAdapter = new PhotoSearchListAdapter();
         staggeredGridLayoutManager =
                 new StaggeredGridLayoutManager(2, LinearLayoutManager.VERTICAL);
+        staggeredGridLayoutManager.setGapStrategy(StaggeredGridLayoutManager.GAP_HANDLING_NONE);
         listOfPhotos.setLayoutManager(staggeredGridLayoutManager);
         listOfPhotos.setAdapter(searchPhotosListAdapter);
     }
@@ -200,11 +209,13 @@ public class SearchPhotosFragment extends Fragment implements PhotosDownloader.P
 
     public void downloadPhotos(String text) {
         skeletonLayout.setVisibility(View.VISIBLE);
+        noSearchResult.setVisibility(View.GONE);
+        listOfPhotos.setVisibility(View.GONE);
         if (photosDownloader != null) {
             photosDownloader.stop();
         }
         photosDownloader = new PhotosDownloader(this);
-        isLastPage = photosDownloader.start(text);
+        photosDownloader.start(text);
     }
 
     public void clearChoices() {
@@ -223,6 +234,9 @@ public class SearchPhotosFragment extends Fragment implements PhotosDownloader.P
         skeletonLayout.setVisibility(View.GONE);
         listOfPhotos.setVisibility(View.VISIBLE);
         searchPhotosListAdapter.setPhotos(downloadedPhotos);
+        if (isLastPage) {
+            searchPhotosListAdapter.getPhotos().remove(null);
+        }
         searchPhotosListAdapter.notifyDataSetChanged();
         isLoading = false;
     }
@@ -230,6 +244,11 @@ public class SearchPhotosFragment extends Fragment implements PhotosDownloader.P
     @Override
     public void setIDs(List<String> ids) {
         photoIDs.addAll(ids);
+    }
+
+    @Override
+    public void isLastPage(boolean lastPage) {
+        isLastPage = lastPage;
     }
 
     public void savePhotos() {
@@ -242,10 +261,13 @@ public class SearchPhotosFragment extends Fragment implements PhotosDownloader.P
         getActivity().onBackPressed();
     }
 
-    class PhotoSearchListAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
+    @Override
+    public void thereIsResults() {
+        skeletonLayout.setVisibility(View.GONE);
+        noSearchResult.setVisibility(View.VISIBLE);
+    }
 
-        private final int VIEW_TYPE_IMAGE = 0;
-        private final int VIEW_TYPE_LOADING = 1;
+    class PhotoSearchListAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
 
         private List<Bitmap> photos;
         private List<String> selected;
@@ -260,7 +282,7 @@ public class SearchPhotosFragment extends Fragment implements PhotosDownloader.P
         @NonNull
         @Override
         public RecyclerView.ViewHolder onCreateViewHolder(@NonNull ViewGroup viewGroup, int viewType) {
-            if(viewType == VIEW_TYPE_IMAGE) {
+            if (viewType == VIEW_TYPE_IMAGE) {
                 return new PictureHolder(inflater.inflate(R.layout.photo_fragment, viewGroup, false));
             } else {
                 return new LoadingViewHolder(inflater.inflate(R.layout.lazy_loading_progress_bar, viewGroup, false));
@@ -269,14 +291,17 @@ public class SearchPhotosFragment extends Fragment implements PhotosDownloader.P
 
         @Override
         public int getItemViewType(int position) {
-            return position + 1 == getItemCount() ? VIEW_TYPE_LOADING : VIEW_TYPE_IMAGE;
+            return photos.get(position) == null ? VIEW_TYPE_LOADING : VIEW_TYPE_IMAGE;
         }
 
         @RequiresApi(api = Build.VERSION_CODES.KITKAT)
         @Override
         public void onBindViewHolder(@NonNull final RecyclerView.ViewHolder viewHolder, int position) {
-            if(viewHolder instanceof PictureHolder) {
+            if (viewHolder instanceof PictureHolder) {
                 populateItemRows((PictureHolder) viewHolder, position);
+            } else {
+                StaggeredGridLayoutManager.LayoutParams layoutParams = (StaggeredGridLayoutManager.LayoutParams) viewHolder.itemView.getLayoutParams();
+                layoutParams.setFullSpan(true);
             }
         }
 
@@ -318,14 +343,15 @@ public class SearchPhotosFragment extends Fragment implements PhotosDownloader.P
 
         @Override
         public int getItemCount() {
-            if (isLastPage) {
-                return photos.size();
-            }
-            return photos.size() + 1;
+            return photos.size();
         }
 
         void setPhotos(List<Bitmap> photos) {
-            this.photos = photos;
+            if (!photos.isEmpty()) {
+                this.photos.clear();
+            }
+            this.photos.addAll(photos);
+            this.photos.add(null);
         }
 
         List<Bitmap> getPhotos() {
@@ -338,6 +364,7 @@ public class SearchPhotosFragment extends Fragment implements PhotosDownloader.P
 
         private class PictureHolder extends RecyclerView.ViewHolder {
             ImageView photo;
+
             PictureHolder(@NonNull View itemView) {
                 super(itemView);
                 photo = itemView.findViewById(R.id.photo_item);
@@ -358,7 +385,7 @@ public class SearchPhotosFragment extends Fragment implements PhotosDownloader.P
         @Override
         protected Void doInBackground(Void... voids) {
             try (Realm realm = Realm.getDefaultInstance()) {
-                Folder result = realm.where(Folder.class).equalTo("id", getArguments().getString(Const.FOLDER_ID)).findFirst();
+                Folder result = realm.where(Folder.class).equalTo("id", getArguments().getString(App_Configurations.FOLDER_ID)).findFirst();
                 long maxPosition;
                 if (result.getPhotoItems().isEmpty()) {
                     maxPosition = 0;
@@ -368,7 +395,7 @@ public class SearchPhotosFragment extends Fragment implements PhotosDownloader.P
                 RealmList<PhotoItem> photoItems = new RealmList<>();
                 List<String> selectedPhotos = searchPhotosListAdapter.getSelectedPhotos();
                 for (String string : selectedPhotos) {
-                    maxPosition ++;
+                    maxPosition++;
                     final PhotoItem item = new PhotoItem();
                     item.setPictureURL(string);
                     int index = photoIDs.indexOf(string);

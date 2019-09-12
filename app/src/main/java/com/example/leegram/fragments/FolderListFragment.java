@@ -5,7 +5,6 @@ import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
-import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.view.LayoutInflater;
@@ -16,7 +15,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
 
-import com.example.leegram.Const;
+import com.example.leegram.App_Configurations;
 import com.example.leegram.R;
 import com.example.leegram.activities.MainActivity;
 import com.example.leegram.model.Folder;
@@ -25,7 +24,6 @@ import java.util.LinkedList;
 import java.util.List;
 
 import io.realm.Realm;
-import io.realm.RealmConfiguration;
 import io.realm.RealmResults;
 
 public class FolderListFragment extends Fragment {
@@ -60,7 +58,7 @@ public class FolderListFragment extends Fragment {
     public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
 //        super.onCreateOptionsMenu(menu, inflater);
         inflater.inflate(R.menu.menu_folder, menu);
-        ((MainActivity) getActivity()).getSupportActionBar().setTitle(Const.APP_NAME);
+        ((MainActivity) getActivity()).getSupportActionBar().setTitle(App_Configurations.APP_NAME);
     }
 
     @Override
@@ -141,7 +139,7 @@ public class FolderListFragment extends Fragment {
 
     private void navigateToFolder(String folderId) {
         Bundle bundle = new Bundle();
-        bundle.putString(Const.FOLDER_ID, folderId);
+        bundle.putString(App_Configurations.FOLDER_ID, folderId);
         FolderFragment folderFragment = new FolderFragment();
         folderFragment.setArguments(bundle);
         ((MainActivity) getActivity()).showOtherFragment(folderFragment);

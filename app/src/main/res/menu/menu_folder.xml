@@ -10,4 +10,30 @@
         android:title="Edit"
         app:showAsAction="ifRoom"
         tools:ignore="HardcodedText" />
+
+    <item
+        android:id="@+id/clear_edit"
+        android:icon="@drawable/ic_clear"
+        android:orderInCategory="200"
+        android:visible="false"
+        android:title="Save"
+        app:showAsAction="ifRoom"
+        tools:ignore="HardcodedText" />
+
+    <item
+        android:id="@+id/trash"
+        android:icon="@drawable/ic_delete"
+        android:orderInCategory="200"
+        android:title="Save"
+        android:visible="false"
+        app:showAsAction="ifRoom"
+        tools:ignore="HardcodedText" />
+    <item
+        android:id="@+id/save"
+        android:icon="@drawable/ic_save"
+        android:orderInCategory="200"
+        android:visible="false"
+        android:title="Save"
+        app:showAsAction="ifRoom"
+        tools:ignore="HardcodedText" />
 </menu>

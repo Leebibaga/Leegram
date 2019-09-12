@@ -13,7 +13,7 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.RadioButton;
 
-import com.example.leegram.Const;
+import com.example.leegram.App_Configurations;
 import com.example.leegram.R;
 import com.example.leegram.activities.MainActivity;
 import com.example.leegram.model.Folder;
@@ -80,7 +80,7 @@ public class CreateNewFolderFragment extends Fragment {
 
     private void navigateToFolder() {
         Bundle bundle = new Bundle();
-        bundle.putString(Const.FOLDER_ID, folderId);
+        bundle.putString(App_Configurations.FOLDER_ID, folderId);
         FolderFragment folderFragment = new FolderFragment();
         folderFragment.setArguments(bundle);
         ((MainActivity) getActivity()).showOtherFragment(folderFragment, true);
