@@ -28,12 +28,4 @@
         android:visible="false"
         app:showAsAction="ifRoom"
         tools:ignore="HardcodedText" />
-    <item
-        android:id="@+id/save"
-        android:icon="@drawable/ic_save"
-        android:orderInCategory="200"
-        android:visible="false"
-        android:title="Save"
-        app:showAsAction="ifRoom"
-        tools:ignore="HardcodedText" />
 </menu>

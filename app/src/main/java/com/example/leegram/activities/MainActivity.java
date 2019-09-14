@@ -6,10 +6,14 @@ import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 
 import com.example.leegram.R;
+import com.example.leegram.fragments.FolderFragment;
 import com.example.leegram.fragments.FolderListFragment;
 
 
 public class MainActivity extends AppCompatActivity {
+
+    //data
+    private boolean clickedBackFromEdit = false;
 
     //view
     private FolderListFragment folderListFragment;
@@ -26,20 +30,24 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     public void onBackPressed() {
-        if(getSupportFragmentManager().getBackStackEntryCount() <= 1) {
-            finish();
+        if(getSupportFragmentManager().findFragmentById(R.id.main_activity_container) instanceof FolderFragment) {
+            ((FolderFragment) getSupportFragmentManager().findFragmentById(R.id.main_activity_container)).saveData();
         } else {
-            getSupportFragmentManager().popBackStackImmediate();
+            if (getSupportFragmentManager().getBackStackEntryCount() <= 1) {
+                finish();
+            } else {
+                getSupportFragmentManager().popBackStackImmediate();
+            }
+            invalidateOptionsMenu();
         }
-        invalidateOptionsMenu();
     }
 
-    public void showOtherFragment(Fragment enterFragment){
-        showOtherFragment(enterFragment,false);
+    public void showOtherFragment(Fragment enterFragment) {
+        showOtherFragment(enterFragment, false);
     }
 
-    public void showOtherFragment(Fragment enterFrag, boolean neglectFromBackStack){
-        if (neglectFromBackStack){
+    public void showOtherFragment(Fragment enterFrag, boolean neglectFromBackStack) {
+        if (neglectFromBackStack) {
             getSupportFragmentManager().popBackStackImmediate();
         }
         FragmentTransaction transaction = getSupportFragmentManager().beginTransaction();

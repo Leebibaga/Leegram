@@ -7,6 +7,7 @@ import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
+import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -56,7 +57,6 @@ public class FolderListFragment extends Fragment {
 
     @Override
     public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
-//        super.onCreateOptionsMenu(menu, inflater);
         inflater.inflate(R.menu.menu_folder, menu);
         ((MainActivity) getActivity()).getSupportActionBar().setTitle(App_Configurations.APP_NAME);
     }
@@ -111,18 +111,6 @@ public class FolderListFragment extends Fragment {
         }
     }
 
-//    private void getFoldersNames() {
-//        RealmConfiguration config = new RealmConfiguration
-//                .Builder()
-//                .deleteRealmIfMigrationNeeded()
-//                .build();
-//        Realm realm = Realm.getInstance(config);
-//            RealmResults<Folder> realmResults = realm.where(Folder.class)
-//                    .findAll();
-//            folderItems.clear();
-//            folderItems.addAll(realm.copyFromRealm(realmResults));
-//
-//    }
     private boolean getDefaultFolder() {
         try (Realm realm = Realm.getDefaultInstance()) {
             Folder folderItem = realm.where(Folder.class)

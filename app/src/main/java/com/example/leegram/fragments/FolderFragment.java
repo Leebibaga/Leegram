@@ -62,6 +62,7 @@ public class FolderFragment extends Fragment implements OnStartDragListener {
     private String folderName;
     private ItemTouchHelper mItemTouchHelper;
     private ActionBarMode actionBarMode;
+    private boolean isSaved = false;
 
     //adapter
     private FavoritePhotosAdapter favoritePhotosAdapter;
@@ -90,14 +91,17 @@ public class FolderFragment extends Fragment implements OnStartDragListener {
             case EDIT:
                 menu.findItem(R.id.trash).setVisible(false);
                 menu.findItem(R.id.clear_edit).setVisible(true);
+                menu.findItem(R.id.add).setVisible(false);
                 break;
             case CLICKED_ITEM:
                 menu.findItem(R.id.trash).setVisible(true);
                 menu.findItem(R.id.clear_edit).setVisible(true);
+                menu.findItem(R.id.add).setVisible(false);
                 break;
             case NOT_EDIT_MODE:
                 menu.findItem(R.id.trash).setVisible(false);
                 menu.findItem(R.id.clear_edit).setVisible(false);
+                menu.findItem(R.id.add).setVisible(true);
                 break;
         }
     }
@@ -115,20 +119,24 @@ public class FolderFragment extends Fragment implements OnStartDragListener {
             case R.id.clear_edit:
                 editFavoriteListPhotosAdapter.clearData();
                 break;
-            case R.id.save:
-                saveData();
-                break;
         }
         return super.onOptionsItemSelected(item);
     }
 
-    private void saveData(){
-        try (Realm realm = Realm.getDefaultInstance()) {
-            realm.executeTransaction(realm1 -> realm.copyToRealmOrUpdate(photoItems));
+
+    public void saveData() {
+        if (isSaved) {
+            getActivity().getSupportFragmentManager().popBackStackImmediate();
+        } else {
+            try (Realm realm = Realm.getDefaultInstance()) {
+                realm.executeTransaction(realm1 -> realm.copyToRealmOrUpdate(photoItems));
+            }
+            actionBarMode = ActionBarMode.NOT_EDIT_MODE;
+            getActivity().invalidateOptionsMenu();
+            updateData();
+            favoritePhotos.setAdapter(favoritePhotosAdapter);
         }
-        actionBarMode = ActionBarMode.NOT_EDIT_MODE;
-        getActivity().invalidateOptionsMenu();
-        favoritePhotos.setAdapter(favoritePhotosAdapter);
+        isSaved = true;
     }
 
     public void deleteSelectedItems() {
@@ -187,6 +195,7 @@ public class FolderFragment extends Fragment implements OnStartDragListener {
             enlargedPhoto.setVisibility(View.GONE);
             favoritePhotos.setVisibility(View.VISIBLE);
         });
+
         actionBarMode = ActionBarMode.NOT_EDIT_MODE;
         return rootView;
     }
@@ -279,6 +288,7 @@ public class FolderFragment extends Fragment implements OnStartDragListener {
             viewHolder.photo.setOnLongClickListener(view -> {
                 editFavoriteListPhotosAdapter.setPhotos();
                 editFavoriteListPhotosAdapter.getSelected().add(photoDir.get(position));
+                deletedPhotoItems.add(photoItems.get(position));
                 favoritePhotos.setAdapter(editFavoriteListPhotosAdapter);
                 return true;
             });
@@ -339,7 +349,7 @@ public class FolderFragment extends Fragment implements OnStartDragListener {
             } else {
                 unhighlightView(viewHolder);
             }
-            if(selected.size() > 0) {
+            if (selected.size() > 0) {
                 actionBarMode = ActionBarMode.CLICKED_ITEM;
             } else {
                 actionBarMode = ActionBarMode.EDIT;
@@ -366,7 +376,7 @@ public class FolderFragment extends Fragment implements OnStartDragListener {
                     highlightView(viewHolder);
                 }
 
-                if(selected.size() > 0) {
+                if (selected.size() > 0) {
                     actionBarMode = ActionBarMode.CLICKED_ITEM;
                 } else {
                     actionBarMode = ActionBarMode.EDIT;
